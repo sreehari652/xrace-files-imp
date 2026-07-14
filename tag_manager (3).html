@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>XRace — Live Race Control</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080b10;
+      --surface: #0d1117;
+      --panel: #111827;
+      --border: #1e2a3a;
+      --accent: #00d4ff;
+      --red: #ff3b5c;
+      --green: #00ff88;
+      --yellow: #ffd700;
+      --text: #e2eaf4;
+      --muted: #4a5568;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      min-height: 60px;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--accent);
+      white-space: nowrap;
+      margin-right: 8px;
+    }
+
+    .logo span {
+      color: var(--red)
+    }
+
+    .topbar select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      min-width: 150px;
+      flex: 1 1 auto;
+      max-width: 240px;
+    }
+
+    .topbar select:focus {
+      border-color: var(--accent)
+    }
+
+    .topbar select:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .btn {
+      padding: 9px 16px;
+      border-radius: 6px;
+      border: none;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn:disabled {
+      opacity: .35;
+      cursor: not-allowed
+    }
+
+    .btn-live {
+      background: var(--green);
+      color: #000
+    }
+
+    .btn-live:hover:not(:disabled) {
+      background: #00cc70
+    }
+
+    .btn-finish {
+      background: var(--red);
+      color: #fff
+    }
+
+    .btn-finish:hover:not(:disabled) {
+      background: #c0182e
+    }
+
+    .btn-restart {
+      background: var(--yellow);
+      color: #000
+    }
+
+    .btn-restart:hover:not(:disabled) {
+      background: #e6c200
+    }
+
+    .btn-raw {
+      background: rgba(0, 212, 255, .12);
+      color: var(--accent);
+      border: 1px solid rgba(0, 212, 255, .3);
+      font-size: .72rem;
+      padding: 5px 10px
+    }
+
+    .btn-raw:hover {
+      background: rgba(0, 212, 255, .22)
+    }
+
+    .badge {
+      font-size: .72rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      border: 1px solid transparent
+    }
+
+    .b-live {
+      background: rgba(0, 255, 136, .12);
+      color: var(--green);
+      border-color: rgba(0, 255, 136, .3)
+    }
+
+    .b-finished {
+      background: rgba(255, 59, 92, .12);
+      color: var(--red);
+      border-color: rgba(255, 59, 92, .3)
+    }
+
+    .b-reassign {
+      background: rgba(255, 215, 0, .15);
+      color: var(--yellow);
+      border-color: rgba(255, 215, 0, .4)
+    }
+
+    .b-default {
+      background: rgba(255, 255, 255, .05);
+      color: var(--muted);
+      border-color: var(--border)
+    }
+
+    .ws-pill {
+      font-size: .72rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid transparent
+    }
+
+    .ws-ok {
+      background: rgba(0, 255, 136, .1);
+      color: var(--green);
+      border-color: rgba(0, 255, 136, .25)
+    }
+
+    .ws-fail {
+      background: rgba(255, 59, 92, .1);
+      color: var(--red);
+      border-color: rgba(255, 59, 92, .25)
+    }
+
+    #dbgBar {
+      background: rgba(0, 0, 0, .85);
+      border-bottom: 1px solid #1e2a3a;
+      padding: 6px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem;
+      color: #4a5568;
+      flex-shrink: 0;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    #dbgBar span {
+      white-space: nowrap
+    }
+
+    #dbgBar .hi {
+      color: #00d4ff
+    }
+
+    #dbgBar .ok {
+      color: #00ff88
+    }
+
+    #dbgBar .warn {
+      color: #ffd700
+    }
+
+    #dbgBar .err {
+      color: #ff3b5c
+    }
+
+    #rawMonitor {
+      background: #050810;
+      border-bottom: 1px solid #1e2a3a;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      font-family: 'JetBrains Mono', monospace;
+      max-height: 220px;
+      overflow: hidden;
+      transition: max-height .25s ease, opacity .25s ease, border-bottom-width .25s;
+    }
+
+    #rawMonitor.hidden {
+      max-height: 0 !important;
+      opacity: 0;
+      border-bottom-width: 0;
+    }
+
+    #rawHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 12px;
+      border-bottom: 1px solid #111827;
+      flex-shrink: 0;
+    }
+
+    #rawTagRates {
+      display: flex;
+      gap: 6px;
+      padding: 4px 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      border-bottom: 1px solid #111827;
+    }
+
+    .rtag-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #0d1117;
+      border: 1px solid #1e2a3a;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: .62rem;
+    }
+
+    .rtag-pill .rtag-id {
+      font-weight: 700;
+    }
+
+    .rtag-pill .rtag-rate {
+      color: #ffd700;
+    }
+
+    .rtag-pill .rtag-bar {
+      width: 40px;
+      height: 5px;
+      background: #1e2a3a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .rtag-pill .rtag-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s;
+    }
+
+    #rawLog {
+      overflow-y: auto;
+      flex: 1;
+      padding: 2px 0;
+      min-height: 60px;
+    }
+
+    #rawLog::-webkit-scrollbar {
+      width: 4px
+    }
+
+    #rawLog::-webkit-scrollbar-thumb {
+      background: #1e2a3a;
+      border-radius: 2px
+    }
+
+    .rlog-row {
+      display: flex;
+      gap: 8px;
+      padding: 1px 12px;
+      font-size: .6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+      white-space: nowrap;
+      overflow: hidden;
+      align-items: baseline;
+    }
+
+    .rlog-row:hover {
+      background: rgba(255, 255, 255, .03)
+    }
+
+    .rlog-time {
+      color: #4a5568;
+      width: 52px;
+      flex-shrink: 0;
+    }
+
+    .rlog-tag {
+      font-weight: 700;
+      width: 38px;
+      flex-shrink: 0;
+    }
+
+    .rlog-xy {
+      color: #00ff88;
+      width: 120px;
+      flex-shrink: 0;
+    }
+
+    .rlog-ranges {
+      color: #00d4ff;
+      flex: 1;
+    }
+
+    .rlog-qual {
+      width: 52px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .rlog-qual.excellent {
+      color: #00ff88
+    }
+
+    .rlog-qual.good {
+      color: #ffd700
+    }
+
+    .rlog-qual.fair {
+      color: #ff6b35
+    }
+
+    .rlog-qual.oob {
+      color: #ff3b5c
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 700px;
+    }
+
+    .cv-wrap {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 16px;
+      min-width: 0;
+      padding-top: 20px;
+    }
+
+    canvas {
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      max-width: 100%;
+      max-height: 100%
+    }
+
+    .side {
+      width: 360px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .side::-webkit-scrollbar { width: 5px; }
+    .side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .side-hdr {
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .side-lbl {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .sbox {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+    }
+
+    .sbox .v {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .sbox .l {
+      font-size: .65rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .col-stats {
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+
+    .col-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .csbox {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .csbox .cv {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .csbox .cl {
+      font-size: .57rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      line-height: 1.2;
+    }
+
+    .csbox.wall .cv {
+      color: #ff6b35
+    }
+
+    .csbox.car .cv {
+      color: #ff3b5c
+    }
+
+    .csbox.pen .cv {
+      color: #ffd700
+    }
+
+    .csbox.bon .cv {
+      color: #00ff88
+    }
+
+    .csbox.laps .cv {
+      color: #00d4ff
+    }
+
+    .csbox.best .cv {
+      color: #ffd700
+    }
+
+    .pcard-col-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 5px;
+      padding-top: 5px;
+      border-top: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .col-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: .58rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: .5px
+    }
+
+    .cc-wall {
+      background: rgba(255, 107, 53, .15);
+      color: #ff6b35;
+      border: 1px solid rgba(255, 107, 53, .35)
+    }
+
+    .cc-car {
+      background: rgba(255, 59, 92, .15);
+      color: #ff3b5c;
+      border: 1px solid rgba(255, 59, 92, .35)
+    }
+
+    .cc-pen {
+      background: rgba(255, 215, 0, .12);
+      color: #ffd700;
+      border: 1px solid rgba(255, 215, 0, .3)
+    }
+
+    .cc-bon {
+      background: rgba(0, 255, 136, .12);
+      color: #00ff88;
+      border: 1px solid rgba(0, 255, 136, .3)
+    }
+
+    .players-wrap {
+      flex-shrink: 0;
+      padding: 14px 16px;
+    }
+
+    .pcard {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      transition: border-color .2s;
+    }
+
+    .pcard.active {
+      border-left-color: var(--cc)
+    }
+
+    .pcard.pulse {
+      animation: kp 2s infinite
+    }
+
+    @keyframes kp {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .7
+      }
+    }
+
+    .pcard-hdr {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px
+    }
+
+    .pcard-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--cc, var(--muted));
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--cc, transparent);
+    }
+
+    .pcard-name {
+      font-weight: 700;
+      font-size: 1rem;
+      flex: 1;
+    }
+
+    .pcard-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: var(--muted);
+    }
+
+    .pcard-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .pcard-pos {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      color: var(--green);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .pcard-timing {
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 7px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .pcard-timing-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .pcard-timing-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .pcard-timing-label {
+      font-size: .6rem;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.38);
+      text-transform: uppercase;
+    }
+
+    .pcard-timing-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .pcard-timing-value.running {
+      color: var(--accent);
+    }
+
+    .pcard-timing-value.best {
+      color: #ffd700;
+    }
+
+    .pcard-timing-value.no-data {
+      color: rgba(255, 255, 255, 0.25);
+      font-size: .75rem;
+    }
+
+    .pcard-cp-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tag-row {
+      margin-top: 8px;
+    }
+
+    .tag-inp {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .85rem;
+      outline: none;
+    }
+
+    .tag-inp:focus {
+      border-color: var(--accent);
+    }
+
+    .tag-hint {
+      font-size: .68rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+      min-height: 16px;
+    }
+
+    .tag-hint.ok {
+      color: var(--green)
+    }
+
+    .tag-hint.err {
+      color: var(--red)
+    }
+
+    .tag-hint.saving {
+      color: var(--yellow)
+    }
+
+    .ph {
+      color: var(--muted);
+      font-size: .85rem;
+      text-align: center;
+      padding: 30px 0;
+      letter-spacing: 1px
+    }
+
+    .feed-wrap {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+
+    .feed-wrap::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .feed-wrap::-webkit-scrollbar-thumb {
+      background: var(--border)
+    }
+
+    .feed-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      padding: 3px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+    }
+
+    .feed-item.hi {
+      color: var(--accent)
+    }
+
+    #cpPanel {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      padding: 14px 16px 16px;
+    }
+
+    #cpPanel::-webkit-scrollbar {
+      width: 4px
+    }
+
+    #cpPanel::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px
+    }
+
+    .cp-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+    }
+
+    .cp-row:last-child {
+      border-bottom: none
+    }
+
+    .cp-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .62rem;
+      font-weight: 700;
+      color: var(--muted);
+      width: 28px;
+      flex-shrink: 0;
+    }
+
+    .cp-id.hit {
+      color: var(--accent)
+    }
+
+    .cp-cars {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .cp-car-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: .56rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid;
+    }
+
+    .cp-empty {
+      font-size: .6rem;
+      color: rgba(255, 255, 255, .15);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    @media(max-width:768px) {
+      .main {
+        flex-direction: column
+      }
+
+      .cv-wrap {
+        max-height: 45vh;
+        padding: 6px
+      }
+
+      .side {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border)
+      }
+    }
+
+    /* ── Tag Assignment Modal ───────────────────────────────── */
+    #tagModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+    #tagModal.open { display: flex; }
+    #tagModalBox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 480px;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+    }
+    #tagModalHeader {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #tagModalHeader h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--yellow);
+      margin-bottom: 4px;
+    }
+    #tagModalHeader p {
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    #tagModalBody {
+      padding: 16px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    #tagModalBody::-webkit-scrollbar { width: 4px; }
+    #tagModalBody::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .tag-assign-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tag-assign-row:last-child { border-bottom: none; }
+    .tag-assign-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tag-assign-name {
+      flex: 1;
+      font-weight: 700;
+      font-size: .95rem;
+    }
+    .tag-assign-status {
+      font-size: .7rem;
+      color: var(--muted);
+    }
+    .tag-assign-inp {
+      width: 110px;
+      padding: 8px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .88rem;
+      text-align: center;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .tag-assign-inp:focus { border-color: var(--accent); }
+    .tag-assign-inp.has-val { border-color: rgba(0,255,136,0.5); color: var(--green); }
+    #tagModalFooter {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+    .btn-modal-cancel {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-modal-cancel:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .btn-modal-confirm {
+      padding: 10px 24px;
+      border-radius: 6px;
+      border: none;
+      background: var(--yellow);
+      color: #000;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-modal-confirm:hover { background: #e6c200; }
+  </style>
+</head>
+
+<body>
+
+  <div class="topbar">
+    <div class="logo">X<span>Race</span></div>
+    <select id="tSel" onchange="loadGroups()">
+      <option value="">— Tournament —</option>
+    </select>
+    <select id="gSel" onchange="selectGroup()" disabled>
+      <option value="">— Group —</option>
+    </select>
+    <span class="badge b-default" id="gBadge"></span>
+    <button class="btn btn-live" id="btnLive" onclick="doLive()" disabled>▶ Live</button>
+    <button class="btn btn-finish" id="btnFinish" onclick="doFinish()" disabled>⏹ Finish</button>
+    <button class="btn btn-restart" id="btnRestart" onclick="doRestart()" disabled>↺ Restart</button>
+    <select id="smoothSel" onchange="changeSmoothing()">
+      <option value="raw">Smoothing: Raw</option>
+      <option value="low">Smoothing: Low (Lag ~30ms)</option>
+      <option value="medium">Smoothing: Medium (Lag ~80ms)</option>
+      <option value="high" selected>Smoothing: High (Lag ~150ms)</option>
+      <option value="ultra">Smoothing: Ultra (Lag ~300ms)</option>
+    </select>
+    <span class="ws-pill ws-fail" id="wsPill">● WS</span>
+  </div>
+
+  <style>
+    .wall-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #0a0f18;
+      border-bottom: 2px solid rgba(0, 212, 255, 0.18);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      min-height: 48px;
+    }
+    .wall-label {
+      font-size: .66rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      margin-right: 6px;
+      border-right: 1px solid var(--border);
+      padding-right: 10px;
+    }
+    .wall-group {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+      border-right: 1px solid var(--border);
+      padding-right: 10px;
+      margin-right: 2px;
+    }
+    .wall-group-label {
+      font-size: .58rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-right: 2px;
+      white-space: nowrap;
+    }
+    .btn-wall {
+      padding: 5px 11px;
+      border-radius: 5px;
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--accent);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-wall:hover { background: rgba(0, 212, 255, 0.2); border-color: var(--accent); }
+    .btn-wall.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 12px rgba(0,212,255,0.5); }
+    .btn-wall.sending { opacity: .5; cursor: wait; }
+    .wall-status { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: .62rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .wall-status .ws-ok-dot { color: var(--green); }
+    .wall-status .ws-err-dot { color: var(--red); }
+  </style>
+
+  <div class="wall-bar" id="wallBar">
+    <span class="wall-label">:desktop: Live Wall</span>
+    <div class="wall-group">
+      <span class="wall-group-label">General</span>
+      <button class="btn-wall" id="wbtn-landing" onclick="pushScreen('landing')">Landing</button>
+      <button class="btn-wall" id="wbtn-players" onclick="pushScreen('players')">Players</button>
+      <button class="btn-wall" id="wbtn-standing" onclick="pushScreen('standing')">Standing</button>
+    </div>
+    <div class="wall-group">
+      <span class="wall-group-label">Round</span>
+      <button class="btn-wall" id="wbtn-group" onclick="pushScreen('group')">Group</button>
+      <button class="btn-wall" id="wbtn-counter" onclick="pushScreen('counter')">Countdown</button>
+    </div>
+    <div class="wall-group">
+      <span class="wall-group-label">Race</span>
+      <button class="btn-wall" id="wbtn-leaderboard" onclick="pushScreen('leaderboard')">Leaderboard</button>
+      <span id="lapAutoPushBadge" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;color:#00ff88;display:none;padding:2px 6px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);border-radius:4px;white-space:nowrap;">⚡ auto</span>
+      <button class="btn-wall" id="wbtn-players_detail" onclick="pushScreen('players_detail')">Player Details</button>
+    </div>
+    <div class="wall-group">
+      <span class="wall-group-label">Results</span>
+      <button class="btn-wall" id="wbtn-qualify" onclick="pushScreen('qualify')">Qualify</button>
+    </div>
+
+    <div class="wall-group" id="finaleGroup" style="display:none;">
+      <span class="wall-group-label">Final</span>
+      <button class="btn-wall" id="wbtn-finale" onclick="pushFinale()">🏆 Finale</button>
+    </div>
+
+    <div class="wall-status" id="wallStatus">— not sent yet —</div>
+    
+  </div>
+
+  <div id="wallToast" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:600;color:var(--text);display:none;box-shadow:0 4px 24px rgba(0,0,0,0.5);transition:opacity .3s;max-width:320px;"></div>
+
+  <div id="dbgBar">
+    <span>WS: <span id="d_ws" class="err">disconnected</span></span>
+    <span>Pkts: <span id="d_pkts" class="hi">0</span></span>
+    <span>Tags: <span id="d_keys" class="hi">none</span></span>
+    <span>Players: <span id="d_players" class="hi">0</span></span>
+    <span>Track: <span id="d_track" class="warn">none</span></span>
+    <span>Wall+: <span id="d_wall" class="warn">—s</span></span>
+    <span>Atk+: <span id="d_atk" class="warn">—s</span></span>
+    <span>Vic-: <span id="d_vic" class="warn">—s</span></span>
+    <span>Last pos: <span id="d_pos" class="ok">—</span></span>
+    <span>Filter (Q/R | EMA): <span id="d_ema" class="hi">—</span></span>
+  </div>
+
+  <div id="rawMonitor" style="display:none">
+    <div id="rawHeader">
+      <span style="color:#00d4ff;font-weight:700;letter-spacing:2px;font-size:.7rem;">▶ RAW UDP STREAM</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="rawTotalRate" style="color:#ffd700;font-size:.65rem;font-family:'JetBrains Mono',monospace;">0 pkt/s</span>
+        <button onclick="clearRawLog()" style="padding:2px 8px;background:#0d1117;border:1px solid #1e2a3a;border-radius:3px;color:#e2eaf4;font-family:'JetBrains Mono',monospace;font-size:.6rem;cursor:pointer;">CLR</button>
+        <button onclick="toggleRawMonitor()" id="rawToggleBtn" style="padding:2px 8px;background:#0d1117;border:1px solid #1e2a3a;border-radius:3px;color:#e2eaf4;font-family:'JetBrains Mono',monospace;font-size:.6rem;cursor:pointer;">PAUSE</button>
+      </div>
+    </div>
+    <div id="rawTagRates"><span style="color:#4a5568;font-family:'JetBrains Mono',monospace;font-size:.6rem;align-self:center;">waiting for data…</span></div>
+    <div id="rawLog">
+      <div class="rlog-row" style="color:#4a5568;">
+        <span class="rlog-time">TIME</span><span class="rlog-tag">TAG</span>
+        <span class="rlog-xy">X , Y (cm)</span>
+        <span class="rlog-ranges">RANGES [A0,A1,A2,A3] cm</span>
+        <span class="rlog-qual">QUAL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap"><canvas id="c" width="860" height="640"></canvas></div>
+
+    <div class="side">
+      <div class="side-hdr">
+        <div class="side-lbl">System</div>
+        <div class="stat-grid">
+          <div class="sbox"><div class="v" id="sPkt">0</div><div class="l">Pkt/s</div></div>
+          <div class="sbox"><div class="v" id="sActive">0</div><div class="l">Active</div></div>
+          <div class="sbox"><div class="v" id="sLaps">—</div><div class="l">Laps</div></div>
+          <div class="sbox"><div class="v" id="sGroup">—</div><div class="l">Group</div></div>
+        </div>
+      </div>
+
+      <div class="col-stats">
+        <div class="side-lbl">Race Stats</div>
+        <div class="col-stats-grid">
+          <div class="csbox wall"><div class="cv" id="cs_wall">0</div><div class="cl">Wall Hits</div></div>
+          <div class="csbox car"><div class="cv" id="cs_car">0</div><div class="cl">Car Hits</div></div>
+          <div class="csbox pen"><div class="cv" id="cs_pen">+0s</div><div class="cl">Penalties</div></div>
+          <div class="csbox bon"><div class="cv" id="cs_bon">-0s</div><div class="cl">Bonuses</div></div>
+          <div class="csbox laps"><div class="cv" id="cs_laps">0</div><div class="cl">Laps Done</div></div>
+          <div class="csbox best"><div class="cv" id="cs_best">—</div><div class="cl">Best Lap</div></div>
+        </div>
+      </div>
+
+      <div class="side-lbl" style="padding:14px 16px 0;flex-shrink:0">Players &amp; Tags</div>
+      <div class="players-wrap" id="players"><p class="ph">Select a group</p></div>
+      <div class="feed-wrap" id="feed"></div>
+
+      <div id="cpPanel">
+        <div class="side-lbl" style="margin-bottom:8px;">Checkpoint Status</div>
+        <div id="cpRows"><span class="cp-empty">No race data</span></div>
+      </div>
+
+      <div id="lbWrap" style="flex-shrink:0;border-top:1px solid var(--border);padding:14px 16px 16px;">
+        <div class="side-lbl" style="margin-bottom:10px;">Best Lap Rankings</div>
+        <div id="lbRows"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // CONFIG
+    // ═══════════════════════════════════════════════════════════
+    const BASE         = 'https://xraceapi.zyberspace.in';
+    const BACKEND_BASE = 'https://xraceapi.zyberspace.in';
+    const WS_URL       = 'ws://localhost:8001/';
+    const API = {
+      list:       BASE + '/api/tournaments/',
+      struct:     BASE + '/api/tournament-structure/',
+      players:    BASE + '/api/group-players/',
+      updateTag:  BASE + '/api/update-tag-id/',
+      markLive:   BASE + '/api/mark-group-live/',
+      markFinish: BASE + '/api/mark-group-finished/',
+      resetGroup: BASE + '/api/reset-group/',
+    };
+
+    const CHECKPOINTS_REQUIRED = 5;
+    const CAR_SIZE_CM   = 40;   // square car — matches ws_bridge.py 40×40 cm
+
+    const ANC = [
+      { x: 0,   y: 0   },
+      { x: 655, y: 0   },
+      { x: 655, y: 920 },
+      { x: 0,   y: 920 },
+    ];
+
+    const COLORS = ['#00d4ff','#ff3b5c','#00ff88','#ffd700','#a855f7','#ff6b35','#00ffcc','#ff9ff3'];
+    // ═══════════════════════════════════════════════════════════
+    // JS-SIDE SNAP-EMA FILTER  (Layer 4 — canvas rendering only)
+    // ═══════════════════════════════════════════════════════════
+    //
+    // This filter handles visual smoothing using a frame-rate independent
+    // exponential decay based on the browser's actual frame delta time (dt).
+    // The user can select the smoothing strength dynamically. Small frame-
+    // to-frame changes are smoothed continuously, and the snap threshold is
+    // set high enough to only trigger on teleports (e.g. restarts or resets)
+    // to prevent sudden jumps/jitters.
+    // ──────────────────────────────────────────────────────────
+    let EMA_K              = 6.0;   // Dynamic smoothing coefficient (default: High)
+    let SNAP_THRESHOLD_CM  = 150.0; // Jumps above this bypass smoothing (restarts)
+    let serverFilterInfo   = { Q: 0.15, R: 30 }; // default display values
+
+    // emaState[tag_id] = { x, y }
+    const emaState = {};
+
+    function emaSmooth(tid, rawX, rawY, dt) {
+      const s = emaState[tid];
+      if (!s) {
+        emaState[tid] = { x: rawX, y: rawY };
+        return emaState[tid];
+      }
+      const dist = Math.hypot(rawX - s.x, rawY - s.y);
+      if (dist > SNAP_THRESHOLD_CM) {
+        // Real movement teleport / reset
+        s.x = rawX; s.y = rawY;
+        return s;
+      }
+
+      // ── ZUPT: if server says car is stationary, hold EMA frozen ──
+      // No smoothing drift — position is pixel-perfect locked until motion resumes.
+      const d = tagData[tid];
+      if (d && d.isStatic) {
+        // Snap EMA to the frozen server position (eliminates residual drift)
+        s.x = rawX; s.y = rawY;
+        return s;
+      }
+
+      // Frame-rate independent exponential decay:
+      // current = current + (target - current) * (1 - e^(-k * dt))
+      const t = 1 - Math.exp(-EMA_K * dt);
+      s.x += (rawX - s.x) * t;
+      s.y += (rawY - s.y) * t;
+      return s;
+    }
+    function resetEma(tid) {
+      delete emaState[tid];
+    }
+
+    function resetAllEma() {
+      Object.keys(emaState).forEach(k => delete emaState[k]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    let currentGroupId = null, currentGroupStatus = '', currentTotalLaps = 10, currentTrackCSV = '';
+    let currentTournamentId = null;  // resolved from tournament slug, sent with admin_start
+    let raceConfig = { total_laps: 10, collision_absorbing_time: null, collision_creating_time: null, object_collision_time: null };
+    let liveTrack = { center: [], inner: [], outer: [], checkpoints: [], start_finish: { x: 490, y1: 300, y2: 340, dir: 'left_to_right' } };
+    let players = [], tagData = {}, reassignMode = false, liveLeaderboard = [], packetsThisSec = 0, totalPackets = 0;
+    let cpTouches = {};      // sidebar panel: all-time history per CP
+    let cpActiveLap = {};    // canvas dots: only cars active THIS lap per CP, resets per car on lap done
+
+    // ═══════════════════════════════════════════════════════════
+    // RAW SECTION TOGGLE
+    // ═══════════════════════════════════════════════════════════
+    let rawSectionVisible = true;
+    function toggleRawSection() {
+      rawSectionVisible = !rawSectionVisible;
+      document.getElementById('rawMonitor').classList.toggle('hidden', !rawSectionVisible);
+      document.getElementById('btnRawToggle').textContent = rawSectionVisible ? '▼ RAW' : '▶ RAW';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DEBUG BAR
+    // ═══════════════════════════════════════════════════════════
+    function dbg(id, val, cls) { const el = document.getElementById(id); if (!el) return; el.textContent = val; if (cls) el.className = cls; }
+    function refreshDebugBar() {
+      dbg('d_pkts', totalPackets);
+      dbg('d_keys', Object.keys(tagData).length ? Object.keys(tagData).join(',') : 'none');
+      dbg('d_players', players.length);
+      if (liveTrack.center.length) dbg('d_track', `${liveTrack.center.length}pts/${liveTrack.checkpoints.length}CPs(need ${CHECKPOINTS_REQUIRED})`, 'ok');
+      if (raceConfig.object_collision_time != null) dbg('d_wall', `${parseFloat(raceConfig.object_collision_time).toFixed(1)}s`, 'hi');
+      if (raceConfig.collision_creating_time != null) dbg('d_atk', `${parseFloat(raceConfig.collision_creating_time).toFixed(1)}s`, 'hi');
+      if (raceConfig.collision_absorbing_time != null) dbg('d_vic', `${parseFloat(raceConfig.collision_absorbing_time).toFixed(1)}s`, 'hi');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COLLISION / RACE STATS
+    // ═══════════════════════════════════════════════════════════
+    function refreshCollisionStats() {
+      let totalWall = 0, totalCar = 0, totalPen = 0, totalBon = 0, totalLaps = 0, bestElp = Infinity;
+      Object.values(tagData).forEach(d => { totalWall += d.wallHits || 0; totalCar += d.carHits || 0; });
+      liveLeaderboard.forEach(lb => {
+        totalPen += lb.penalty_total || 0;
+        totalBon += lb.bonus_total || 0;
+        totalLaps += lb.laps_done || 0;
+        if (lb.best_elp != null && lb.best_elp < bestElp) bestElp = lb.best_elp;
+      });
+      document.getElementById('cs_wall').textContent = totalWall;
+      document.getElementById('cs_car').textContent  = totalCar;
+      document.getElementById('cs_pen').textContent  = totalPen > 0 ? `+${totalPen.toFixed(1)}s` : '+0s';
+      document.getElementById('cs_bon').textContent  = totalBon > 0 ? `-${totalBon.toFixed(1)}s` : '-0s';
+      document.getElementById('cs_laps').textContent = totalLaps;
+      document.getElementById('cs_best').textContent = bestElp < Infinity ? fmtLapTime(bestElp) : '—';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CHECKPOINT PANEL
+    // ═══════════════════════════════════════════════════════════
+    function renderCpPanel() {
+      const wrap = document.getElementById('cpRows');
+      const numCPs = liveTrack.checkpoints.length || CHECKPOINTS_REQUIRED;
+      if (!numCPs) { wrap.innerHTML = '<span class="cp-empty">No checkpoints</span>'; return; }
+      let html = '';
+      for (let i = 0; i < numCPs; i++) {
+        const touches = cpTouches[String(i)] || cpTouches[i] || [];
+        const seen = new Map();
+        touches.forEach(t => { if (!seen.has(t.car_id)) seen.set(t.car_id, t); });
+        const playerIdx_map = {};
+        players.forEach((p, idx) => { if (p.tag_id !== null) playerIdx_map[parseInt(p.tag_id, 10)] = idx; });
+        let chipsHtml = seen.size === 0 ? '<span class="cp-empty">—</span>' : '';
+        seen.forEach((t, car_id) => {
+          const pIdx = playerIdx_map[car_id] ?? (car_id % COLORS.length);
+          const col = COLORS[pIdx % COLORS.length];
+          chipsHtml += `<span class="cp-car-chip" style="color:${col};border-color:${col}33;background:${col}18">${t.car_name}</span>`;
+        });
+        html += `<div class="cp-row"><span class="cp-id ${seen.size>0?'hit':''}"">CP${i}</span><div class="cp-cars">${chipsHtml}</div></div>`;
+      }
+      wrap.innerHTML = html;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CANVAS
+    // ═══════════════════════════════════════════════════════════
+    const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+    let cScale, cOffX, cOffY;
+    function calcLayout() {
+      const xs = ANC.map(a => a.x), ys = ANC.map(a => a.y);
+      if (liveTrack.center && liveTrack.center.length) {
+        liveTrack.center.forEach(pt => { xs.push(pt[0]); ys.push(pt[1]); });
+      }
+      if (liveTrack.inner && liveTrack.inner.length) {
+        liveTrack.inner.forEach(pt => { xs.push(pt[0]); ys.push(pt[1]); });
+      }
+      if (liveTrack.outer && liveTrack.outer.length) {
+        liveTrack.outer.forEach(pt => { xs.push(pt[0]); ys.push(pt[1]); });
+      }
+      if (liveTrack.checkpoints && liveTrack.checkpoints.length) {
+        liveTrack.checkpoints.forEach(cp => {
+          xs.push(cp.x - cp.r);
+          xs.push(cp.x + cp.r);
+          ys.push(cp.y - cp.r);
+          ys.push(cp.y + cp.r);
+        });
+      }
+      if (liveTrack.start_finish) {
+        xs.push(liveTrack.start_finish.x);
+        ys.push(liveTrack.start_finish.y1);
+        ys.push(liveTrack.start_finish.y2);
+      }
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const w = maxX - minX, h = maxY - minY, pad = 60;
+      cScale = Math.min((canvas.width - pad*2) / (w||1), (canvas.height - pad*2) / (h||1)) * 0.95;
+      cOffX  = (canvas.width  - w*cScale) / 2 - minX*cScale;
+      cOffY  = (canvas.height - h*cScale) / 2 - minY*cScale;
+    }
+    calcLayout();
+    function tp(cx, cy) { return { px: cOffX + cx*cScale, py: canvas.height - cOffY - cy*cScale }; }
+
+    // ── Track draw helpers ───────────────────────────────────────────────
+    function offsetPath(pts, halfW, side) {
+      const n = pts.length, out = [];
+      for (let i = 0; i < n; i++) {
+        const prev = pts[(i-1+n)%n], next = pts[(i+1)%n];
+        const tx = next.px-prev.px, ty = next.py-prev.py, tl = Math.hypot(tx,ty)||1;
+        const nx = -ty/tl, ny = tx/tl;
+        out.push({ px: pts[i].px + nx*halfW*side, py: pts[i].py + ny*halfW*side });
+      }
+      return out;
+    }
+    function pathToCtx(path, close) {
+      ctx.beginPath();
+      path.forEach((p,i) => i ? ctx.lineTo(p.px,p.py) : ctx.moveTo(p.px,p.py));
+      if (close) ctx.closePath();
+    }
+    function drawCurbs(path, w, close) {
+      const n = path.length, segs = [];
+      for (let i = 0; i < n-(close?0:1); i++) { const a=path[i], b=path[(i+1)%n]; segs.push({a,b,d:Math.hypot(b.px-a.px,b.py-a.py)}); }
+      const stripeLen=10; let acc=0;
+      segs.forEach(({a,b,d}) => {
+        let t=0;
+        while (t<d) {
+          const t0=t, t1=Math.min(t+stripeLen-(acc%stripeLen),d), f0=t0/d, f1=t1/d;
+          const x0=a.px+(b.px-a.px)*f0, y0=a.py+(b.py-a.py)*f0, x1=a.px+(b.px-a.px)*f1, y1=a.py+(b.py-a.py)*f1;
+          const tl2=Math.hypot(b.px-a.px,b.py-a.py)||1, nx=-(b.py-a.py)/tl2*w, ny=(b.px-a.px)/tl2*w;
+          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x1+nx,y1+ny); ctx.lineTo(x0+nx,y0+ny); ctx.closePath();
+          ctx.fillStyle = Math.floor(acc/stripeLen)%2===0 ? '#cc1111' : '#ffffff'; ctx.fill();
+          acc+=(t1-t0); t=t1;
+        }
+      });
+    }
+    function drawCenterLine(pts) { ctx.save(); ctx.setLineDash([8,12]); ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.lineJoin='round'; pathToCtx(pts,true); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
+    function drawArrows(pts) {
+      const n=pts.length, step=Math.max(3,Math.floor(n/8));
+      for (let i=0;i<n;i+=step) {
+        const a=pts[i], b=pts[(i+1)%n], dx=b.px-a.px, dy=b.py-a.py, l=Math.hypot(dx,dy)||1;
+        const mx=(a.px+b.px)/2, my=(a.py+b.py)/2, hs=7;
+        ctx.save(); ctx.translate(mx,my); ctx.rotate(Math.atan2(dy/l,dx/l));
+        ctx.beginPath(); ctx.moveTo(hs,0); ctx.lineTo(-hs,hs*0.6); ctx.lineTo(-hs*0.3,0); ctx.lineTo(-hs,-hs*0.6);
+        ctx.closePath(); ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fill(); ctx.restore();
+      }
+    }
+    // ═══════════════════════════════════════════════════════════
+    // DRAW LOOP — uses frame-rate independent exponential smoothing
+    // ═══════════════════════════════════════════════════════════
+    let lastDrawTime = performance.now();
+    function draw() {
+      const nowPerf = performance.now();
+      let dt = (nowPerf - lastDrawTime) / 1000;
+      lastDrawTime = nowPerf;
+
+      // Clamp dt to avoid huge jumps on tab switch/suspend
+      if (dt > 0.2) dt = 0.2;
+      if (dt < 0.001) dt = 0.001;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0e1a0e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.012)';
+      for (let gx=0;gx<canvas.width;gx+=18) for (let gy=0;gy<canvas.height;gy+=18) if ((gx+gy)%36===0) ctx.fillRect(gx,gy,18,18);
+
+      ctx.strokeStyle='rgba(0,212,255,0.15)'; ctx.lineWidth=2; ctx.setLineDash([8,10]);
+      ctx.beginPath(); ANC.forEach((a,i) => { const p=tp(a.x,a.y); i ? ctx.lineTo(p.px,p.py) : ctx.moveTo(p.px,p.py); });
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+
+      const hasCsvTrack = liveTrack.center.length > 2;
+
+      if (hasCsvTrack) {
+        const ctrPx = liveTrack.center.map(pt => tp(pt[0],pt[1]));
+        const hasIO = liveTrack.outer.length>2 && liveTrack.inner.length>2;
+        const outerRoad = hasIO ? liveTrack.outer.map(pt=>tp(pt[0],pt[1])) : offsetPath(ctrPx, 30*cScale/100, 1);
+        const innerRoad = hasIO ? liveTrack.inner.map(pt=>tp(pt[0],pt[1])) : offsetPath(ctrPx, 30*cScale/100,-1);
+        const outerPx = offsetPath(outerRoad,5,1), innerPx = offsetPath(innerRoad,5,-1);
+
+        ctx.save(); pathToCtx(innerRoad,true); ctx.fillStyle='#162916'; ctx.fill(); ctx.clip();
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=6;
+        for (let s=-canvas.height;s<canvas.width+canvas.height;s+=20) { ctx.beginPath(); ctx.moveTo(s,0); ctx.lineTo(s+canvas.height,canvas.height); ctx.stroke(); }
+        ctx.restore();
+
+        ctx.save(); ctx.lineJoin='round'; ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=14;
+        ctx.beginPath(); outerRoad.forEach((p,i) => i?ctx.lineTo(p.px,p.py):ctx.moveTo(p.px,p.py)); ctx.closePath();
+        const ir=[...innerRoad].reverse(); ir.forEach((p,i) => i?ctx.lineTo(p.px,p.py):ctx.moveTo(p.px,p.py)); ctx.closePath();
+        ctx.fillStyle='#333'; ctx.fill('evenodd'); ctx.shadowBlur=0; ctx.restore();
+
+        drawCurbs(outerPx,5,true); drawCurbs(innerPx,4,true);
+        ctx.save(); ctx.lineJoin='round';
+        pathToCtx(outerRoad,true); ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=2; ctx.stroke();
+        pathToCtx(innerRoad,true); ctx.stroke(); ctx.restore();
+        drawCenterLine(ctrPx); drawArrows(ctrPx);
+
+        const sf=liveTrack.start_finish;
+        const sfP1=tp(sf.x,sf.y1), sfP2=tp(sf.x,sf.y2);
+        const sfDx=sfP2.px-sfP1.px, sfDy=sfP2.py-sfP1.py, sfLen=Math.hypot(sfDx,sfDy)||1;
+        const sfMx=(sfP1.px+sfP2.px)/2, sfMy=(sfP1.py+sfP2.py)/2;
+        const tgX=sfDx/sfLen, tgY=sfDy/sfLen, nxSf=-sfDy/sfLen, nySf=sfDx/sfLen;
+        const sqS=8, sqN=5;
+        for (let row=0;row<3;row++) for (let col=0;col<sqN;col++) {
+          const t2=(col-sqN/2)*sqS, r2=(row-1)*sqS;
+          ctx.save(); ctx.translate(sfMx+nxSf*t2+tgX*r2, sfMy+nySf*t2+tgY*r2); ctx.rotate(Math.atan2(tgY,tgX));
+          ctx.fillStyle=(row+col)%2===0?'#ffffff':'#111111'; ctx.fillRect(-sqS/2,-sqS/2,sqS,sqS); ctx.restore();
+        }
+        ctx.shadowColor='rgba(255,215,0,0.9)'; ctx.shadowBlur=8; ctx.fillStyle='#ffd700';
+        ctx.font='bold 11px JetBrains Mono,monospace'; ctx.textAlign='center';
+        ctx.fillText('S/F', sfMx+nxSf*22, sfMy+nySf*22); ctx.shadowBlur=0;
+        const ao=sf.dir==='left_to_right'?0.20:-0.20;
+        const af=tp(sf.x-ao*0.6,(sf.y1+sf.y2)/2), at=tp(sf.x+ao,(sf.y1+sf.y2)/2);
+        ctx.save(); ctx.strokeStyle='rgba(255,215,0,0.8)'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(af.px,af.py); ctx.lineTo(at.px,at.py); ctx.stroke(); ctx.setLineDash([]);
+        const adx=at.px-af.px, ady=at.py-af.py, al=Math.hypot(adx,ady)||1, anx=adx/al, any=ady/al, ahs=7;
+        ctx.beginPath(); ctx.moveTo(at.px,at.py);
+        ctx.lineTo(at.px-anx*ahs+any*ahs*0.5,at.py-any*ahs-anx*ahs*0.5);
+        ctx.lineTo(at.px-anx*ahs-any*ahs*0.5,at.py-any*ahs+anx*ahs*0.5);
+        ctx.closePath(); ctx.fillStyle='rgba(255,215,0,0.8)'; ctx.fill(); ctx.restore();
+      }
+
+      // Checkpoints
+      if (liveTrack.checkpoints.length) {
+        liveTrack.checkpoints.forEach((cp, idx) => {
+          const p = tp(cp.x, cp.y);
+          const radiusPx = Math.max(cp.r * cScale, 14);
+
+          // Always draw the checkpoint circle in a neutral, quiet style —
+          // no green glow or fill changes based on hit state.
+          ctx.save();
+          ctx.globalAlpha = 0.18;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(p.px, p.py, radiusPx, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+          ctx.save();
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(p.px, p.py, radiusPx, 0, Math.PI*2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.font = 'bold 9px JetBrains Mono,monospace'; ctx.textAlign = 'center';
+          ctx.fillText('CP' + idx, p.px, p.py + 3);
+
+          // Small colored dots on the rim — one per car that has touched
+          // this CP this lap. Resets automatically when their lap completes.
+          const activeTouches = cpActiveLap[String(idx)] || [];
+          if (activeTouches.length > 0) {
+            activeTouches.forEach((t, di) => {
+              const pIdx = players.findIndex(pl => pl.tag_id !== null && parseInt(pl.tag_id, 10) === t.car_id);
+              const col = COLORS[(pIdx >= 0 ? pIdx : t.car_id) % COLORS.length];
+              const angle = (di / activeTouches.length) * Math.PI * 2 - Math.PI / 2;
+              const dx = Math.cos(angle) * (radiusPx + 7);
+              const dy = Math.sin(angle) * (radiusPx + 7);
+              ctx.save();
+              ctx.fillStyle = col;
+              ctx.shadowColor = col;
+              ctx.shadowBlur = 8;
+              ctx.beginPath(); ctx.arc(p.px + dx, p.py + dy, 5, 0, Math.PI * 2); ctx.fill();
+              ctx.restore();
+            });
+          }
+        });
+      }
+
+      // Anchors
+      ANC.forEach((a, i) => {
+        const p = tp(a.x, a.y);
+        ctx.shadowColor='rgba(0,212,255,0.7)'; ctx.shadowBlur=12; ctx.fillStyle='#00d4ff';
+        ctx.beginPath(); ctx.arc(p.px,p.py,8,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.px,p.py,8,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle='rgba(0,212,255,0.9)'; ctx.font='bold 12px Rajdhani,sans-serif'; ctx.textAlign='left';
+        ctx.fillText(`A${i} (${a.x},${a.y})cm`, p.px+10, p.py-6);
+      });
+
+      // ── Cars — snap-EMA smoothed for rendering ─────────────────────
+      const now = Date.now();
+      Object.entries(tagData).forEach(([tidStr, d]) => {
+        if (now - d.lastTime > 6000) return;
+        const tid = parseInt(tidStr);
+        const playerIdx = players.findIndex(p => parseInt(p.tag_id,10) === tid);
+        const player = players[playerIdx];
+        const color = playerIdx >= 0 ? COLORS[playerIdx%COLORS.length] : '#ffffff';
+        const label = player ? player.player_name : `Tag${tid}`;
+        const posNum = playerIdx >= 0 ? playerIdx+1 : '?';
+
+        // ── Apply snap-EMA for canvas render ───────────────────────────
+        // d.x / d.y = server-filtered values (used for game logic)
+        // smoothed.x / smoothed.y = what we actually draw
+        const smoothed = emaSmooth(tid, d.x, d.y, dt);
+        const p = tp(smoothed.x, smoothed.y);
+
+        const xs=ANC.map(a=>a.x), ys=ANC.map(a=>a.y);
+        const oob = d.x<Math.min(...xs)-80 || d.x>Math.max(...xs)+80 ||
+                    d.y<Math.min(...ys)-80 || d.y>Math.max(...ys)+80;
+
+        // Trail: also smooth each trail point through their natural order
+        if (d.trail.length > 1) {
+          ctx.lineJoin='round';
+          for (let i=1;i<d.trail.length;i++) {
+            const t0=tp(d.trail[i-1].x,d.trail[i-1].y), t1=tp(d.trail[i].x,d.trail[i].y);
+            ctx.globalAlpha=(i/d.trail.length)*0.45; ctx.strokeStyle=color; ctx.lineWidth=2.5;
+            ctx.beginPath(); ctx.moveTo(t0.px,t0.py); ctx.lineTo(t1.px,t1.py); ctx.stroke();
+          }
+          ctx.globalAlpha=1;
+        }
+
+        ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.globalAlpha=0.22;
+        ctx.beginPath(); ctx.arc(p.px,p.py,15+4*Math.sin(now/120+tid),0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+        const dc = oob ? '#ff8800' : color;
+
+        // ── Heading from IMU gyro (frozen when static, live when moving) ──
+        const headingDeg = (d && d.heading != null) ? d.heading : 0;
+        const heading    = headingDeg * Math.PI / 180;
+        const halfSize = (CAR_SIZE_CM * cScale) / 2;
+
+        ctx.save();
+        ctx.translate(p.px, p.py);
+        ctx.rotate(heading);
+        // Outer glow
+        ctx.shadowColor = dc; ctx.shadowBlur = oob ? 24 : 14;
+        ctx.fillStyle = dc; ctx.globalAlpha = oob ? 0.85 : 0.92;
+        ctx.beginPath(); ctx.roundRect(-halfSize, -halfSize, halfSize*2, halfSize*2, halfSize*0.25); ctx.fill();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        // White border
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = oob ? 2.5 : 1.8;
+        if (oob) ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.roundRect(-halfSize, -halfSize, halfSize*2, halfSize*2, halfSize*0.25); ctx.stroke();
+        ctx.setLineDash([]);
+        // Position number centred on car
+        ctx.fillStyle = '#000'; ctx.font = 'bold 11px Rajdhani,sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(posNum, 0, 0);
+        ctx.textBaseline = 'alphabetic';
+        ctx.restore();
+        // ── end square ───────────────────────────────────────────────────
+
+        ctx.font='bold 13px Rajdhani,sans-serif'; ctx.textAlign='center';
+        const lw=ctx.measureText(label).width+12;
+        ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(p.px-lw/2,p.py-32,lw,16);
+        ctx.fillStyle=color; ctx.fillText(label,p.px,p.py-20);
+
+        const wH=d.wallHits||0, cH=d.carHits||0;
+        if ((wH>0||cH>0)&&Math.sin(now/150+tid)>0) {
+          const halfSizeH = (CAR_SIZE_CM * cScale) / 2 + 5;
+          ctx.save();
+          ctx.translate(p.px, p.py); ctx.rotate(0);
+          ctx.strokeStyle=wH>0?'#ff6b35':'#ff3b5c'; ctx.lineWidth=3; ctx.globalAlpha=0.65;
+          ctx.beginPath(); ctx.roundRect(-halfSizeH,-halfSizeH,halfSizeH*2,halfSizeH*2,halfSizeH*0.25); ctx.stroke();
+          ctx.restore(); ctx.globalAlpha=1;
+        }
+
+        const li = d.lapInfo;
+        if (li && li.is_racing) {
+          const el2=d.lapStartTime?(now-d.lapStartTime)/1000:(li.current_lap_elapsed||0);
+          const el2c=Math.max(0,el2);
+          const m=Math.floor(el2c/60), s=(el2c%60).toFixed(2).padStart(5,'0'), ts=m>0?`${m}:${s}`:s;
+          const ls=`L${li.current_lap}/${li.total_laps}`;
+          const tw2=86, th2=30, tx=p.px-tw2/2, ty=p.py-70;
+          ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.beginPath(); ctx.roundRect(tx,ty,tw2,th2,5); ctx.fill();
+          ctx.strokeStyle=color; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(tx,ty,tw2,th2,5); ctx.stroke();
+          ctx.font='bold 9px Rajdhani,sans-serif'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.fillText(ls,p.px,ty+10);
+          ctx.font='bold 12px JetBrains Mono,monospace'; ctx.fillStyle='#fff'; ctx.fillText(ts,p.px,ty+24);
+          if (li.checkpoints_hit!=null) {
+            const cpTotal=CHECKPOINTS_REQUIRED, cpHit=li.checkpoints_hit||0;
+            const bw=tw2, bh=5, bx=tx, by=ty+th2+3;
+            ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,2); ctx.fill();
+            if (cpHit>0) {
+              const fillW=Math.min(bw,bw*(cpHit/cpTotal));
+              ctx.fillStyle=cpHit>=cpTotal?'#00ff88':color;
+              ctx.shadowColor=cpHit>=cpTotal?'#00ff88':color; ctx.shadowBlur=4;
+              ctx.beginPath(); ctx.roundRect(bx,by,fillW,bh,2); ctx.fill(); ctx.shadowBlur=0;
+            }
+            ctx.font='bold 8px JetBrains Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.55)';
+            ctx.textAlign='center'; ctx.fillText(`CP ${cpHit}/${cpTotal}`,p.px,by+bh+8);
+          }
+        }
+
+        // Show smoothed position in label (reflects what user sees)
+        ctx.font='9px JetBrains Mono,monospace';
+        ctx.fillStyle=oob?'#ff8800':'rgba(255,255,255,0.55)'; ctx.textAlign='center';
+        ctx.fillText(`${smoothed.x.toFixed(1)},${smoothed.y.toFixed(1)}cm`, p.px, p.py+28);
+        if (d.speed!=null) { ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillText(d.speed.toFixed(1)+' km/h',p.px,p.py+39); }
+        if (oob) { ctx.fillStyle='#ff8800'; ctx.font='bold 9px JetBrains Mono,monospace'; ctx.fillText('⚠ OOB',p.px,p.py+50); }
+        ctx.textAlign='left';
+      });
+
+      // Leaderboard overlay
+      {
+        function fmtT(s) { if (s==null||s===Infinity) return '—'; const m=Math.floor(s/60); return m>0?`${m}:${(s%60).toFixed(2).padStart(5,'0')}`:(s%60).toFixed(2).padStart(5,'0'); }
+        const ranked = [];
+        liveLeaderboard.forEach(lb => { const player=players.find(p=>p.tag_id!==null&&parseInt(p.tag_id,10)===lb.car_id); if (!player) return; ranked.push({lb,player,d:tagData[lb.car_id],li:tagData[lb.car_id]?.lapInfo}); });
+        players.forEach(p => { if (!ranked.find(r=>r.player===p)) { const d=p.tag_id!==null?tagData[parseInt(p.tag_id,10)]:null; ranked.push({lb:null,player:p,d,li:d?.lapInfo}); } });
+        if (!ranked.length) { requestAnimationFrame(draw); return; }
+        const rowH=26, panW=248, panH=ranked.length*rowH+30, px2=canvas.width-panW-8, py2=canvas.height-panH-8;
+        ctx.fillStyle='rgba(8,11,16,0.88)'; ctx.beginPath(); ctx.roundRect(px2,py2,panW,panH,7); ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(px2,py2,panW,panH,7); ctx.stroke();
+        ctx.font='bold 10px Rajdhani,sans-serif'; ctx.fillStyle='rgba(0,212,255,0.7)'; ctx.textAlign='left'; ctx.fillText('STANDINGS',px2+10,py2+16);
+        ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.textAlign='right'; ctx.font='9px JetBrains Mono,monospace'; ctx.fillText('BEST LAP',px2+panW-8,py2+16);
+        const MEDAL=['🥇','🥈','🥉'];
+        ranked.forEach(({lb,player,d,li},ri) => {
+          const idx=players.indexOf(player), color2=COLORS[idx%COLORS.length], ry=py2+26+ri*rowH;
+          if (ri%2===0) { ctx.fillStyle='rgba(255,255,255,0.03)'; ctx.fillRect(px2,ry,panW,rowH); }
+          ctx.fillStyle=color2; ctx.fillRect(px2,ry,3,rowH); ctx.textAlign='left';
+          if (lb) { const med=ri<3?MEDAL[ri]:null; if (med) { ctx.font='13px serif'; ctx.fillText(med,px2+6,ry+rowH-7); } else { ctx.font='bold 12px Rajdhani,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.fillText(`P${ri+1}`,px2+6,ry+rowH-7); } }
+          else { ctx.font='10px JetBrains Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillText('—',px2+8,ry+rowH-7); }
+          ctx.font='bold 12px Rajdhani,sans-serif'; ctx.fillStyle=color2; ctx.textAlign='left'; ctx.fillText(player.player_name.substring(0,11),px2+28,ry+rowH-7);
+          const lapsTotal=li?li.total_laps:currentTotalLaps, finished=li?.race_finished||(lb&&lb.laps_done>=lapsTotal);
+          if (finished) { ctx.fillStyle='rgba(0,255,136,0.15)'; ctx.beginPath(); ctx.roundRect(px2+panW-60,ry+4,50,rowH-8,3); ctx.fill(); ctx.fillStyle='#00ff88'; ctx.font='bold 9px Rajdhani,sans-serif'; ctx.textAlign='center'; ctx.fillText('DONE',px2+panW-35,ry+rowH-9); ctx.font='9px JetBrains Mono,monospace'; ctx.fillStyle='#ffd700'; ctx.fillText(fmtT(lb?.best_elp),px2+panW-35,ry+rowH-1); }
+          else if (li?.is_racing) { ctx.textAlign='right'; ctx.font='9px JetBrains Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.fillText(`L${li.current_lap}/${lapsTotal}`,px2+panW-72,ry+rowH-7); const el2=Math.max(0,d?.lapStartTime?(now-d.lapStartTime)/1000:(li.current_lap_elapsed||0)); ctx.font='bold 11px JetBrains Mono,monospace'; ctx.fillStyle='#fff'; ctx.fillText(fmtT(el2),px2+panW-8,ry+rowH-7); if (lb?.best_elp<Infinity) { ctx.font='8px JetBrains Mono,monospace'; ctx.fillStyle='#ffd700'; ctx.fillText(`best:${fmtT(lb.best_elp)}`,px2+panW-8,ry+rowH); } }
+          else if (lb) { ctx.textAlign='right'; ctx.font='bold 11px JetBrains Mono,monospace'; ctx.fillStyle='#ffd700'; ctx.fillText(fmtT(lb.best_elp),px2+panW-8,ry+rowH-7); }
+          else { ctx.textAlign='right'; ctx.font='9px Rajdhani,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillText('waiting…',px2+panW-8,ry+rowH-7); }
+        });
+        ctx.textAlign='left';
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    function updateEmaDebugText() {
+      const mode = document.getElementById('smoothSel')?.value || 'high';
+      dbg('d_ema', `Q=${serverFilterInfo.Q} R=${serverFilterInfo.R} | K=${EMA_K} (${mode})`, 'hi');
+    }
+
+    function changeSmoothing() {
+      const val = document.getElementById('smoothSel').value;
+      if (val === 'raw') {
+        EMA_K = 100.0;
+        SNAP_THRESHOLD_CM = 40.0;
+      } else if (val === 'low') {
+        EMA_K = 25.0;
+        SNAP_THRESHOLD_CM = 60.0;
+      } else if (val === 'medium') {
+        EMA_K = 12.0;
+        SNAP_THRESHOLD_CM = 100.0;
+      } else if (val === 'high') {
+        EMA_K = 6.0;
+        SNAP_THRESHOLD_CM = 150.0;
+      } else if (val === 'ultra') {
+        EMA_K = 3.0;
+        SNAP_THRESHOLD_CM = 200.0;
+      }
+      updateEmaDebugText();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // WEBSOCKET
+    // ═══════════════════════════════════════════════════════════
+    let ws, reconnTimer;
+    function connectWS() {
+      if (ws) { try { ws.close(); } catch(e){} }
+      ws = new WebSocket(WS_URL);
+      ws.onopen  = () => { setPill(true);  dbg('d_ws','connected','ok');   clearTimeout(reconnTimer); reconnTimer=null; };
+      ws.onclose = () => { setPill(false); dbg('d_ws','disconnected','err'); if (!reconnTimer) reconnTimer=setTimeout(connectWS,2500); };
+      ws.onerror = () => { setPill(false); dbg('d_ws','error','err'); };
+      ws.onmessage = (e) => {
+        try {
+          const msg=JSON.parse(e.data); let needRender=false;
+          if (msg.type==='connection') {
+            if (msg.track) applyLiveTrack(msg.track);
+            if (msg.server_info && msg.server_info.filter) {
+              const flt = msg.server_info.filter;
+              serverFilterInfo.Q = flt.l3_kalman_Q;
+              serverFilterInfo.R = flt.l3_kalman_R;
+              updateEmaDebugText();
+            }
+            return;
+          }
+          if (msg.track) applyLiveTrack(msg.track);
+          // Only apply server's checkpoint_touches on initial load (no local data yet).
+          // During a race, cpTouches is owned by JS via checkpoint game events so the
+          // server's global history (which never resets per-lap) doesn't repopulate dots.
+          if (msg.checkpoint_touches && Object.keys(cpTouches).length===0) { cpTouches=msg.checkpoint_touches; renderCpPanel(); }
+          if (msg.cp_active_lap) { cpActiveLap = msg.cp_active_lap; }
+          if (msg.race_config) {
+            if (msg.race_config.wall_hit_penalty!=null)  raceConfig.object_collision_time=msg.race_config.wall_hit_penalty;
+            if (msg.race_config.attacker_penalty!=null)  raceConfig.collision_creating_time=msg.race_config.attacker_penalty;
+            if (msg.race_config.victim_bonus!=null)      raceConfig.collision_absorbing_time=msg.race_config.victim_bonus;
+            refreshDebugBar();
+          }
+          if (msg.type==='state_update') {
+            document.getElementById('sLaps').textContent  = msg.total_laps??'—';
+            document.getElementById('sGroup').textContent = msg.group_id??'—';
+            if (msg.feed?.length) appendFeed(msg.feed);
+            if (msg.leaderboard) { liveLeaderboard=msg.leaderboard; renderLeaderboard(); refreshCollisionStats(); }
+            if (msg.cars) {
+              msg.cars.forEach(car => {
+                const tid=parseInt(car.tag_id,10); if (isNaN(tid)) return;
+                if (!tagData[tid]) tagData[tid]={x:0,y:0,trail:[],lastTime:0,speed:0,lapInfo:null,lapStartTime:null,wallHits:0,carHits:0};
+                if (car.x!=null) tagData[tid].x=car.x;
+                if (car.y!=null) tagData[tid].y=car.y;
+                tagData[tid].lastTime=Date.now();
+                const prevR=tagData[tid].lapInfo?.is_racing;
+                const prevCpSet2=tagData[tid].lapInfo?._cpSet;
+                const prevCpHit2=tagData[tid].lapInfo?.checkpoints_hit??0;
+                tagData[tid].lapInfo=car.lap_info;
+                if (prevCpSet2&&tagData[tid].lapInfo) { tagData[tid].lapInfo._cpSet=prevCpSet2; tagData[tid].lapInfo.checkpoints_hit=prevCpHit2; }
+                if (car.speed!=null) tagData[tid].speed=car.speed;
+                if (car.wall_hits!=null)    tagData[tid].wallHits=car.wall_hits;
+                if (car.car_collisions!=null) tagData[tid].carHits=car.car_collisions;
+                if (prevR!==car.lap_info?.is_racing) needRender=true;
+              });
+              refreshDebugBar(); refreshCollisionStats(); if (needRender) renderPlayers();
+            }
+            return;
+          }
+          if (msg.type==='tag_position') {
+            const tid=parseInt(msg.tag_id,10); if (isNaN(tid)) return;
+            rawMonitorIngest(tid, msg);
+            if (!tagData[tid]) tagData[tid]={x:0,y:0,heading:0,isStatic:false,trail:[],lastTime:0,speed:0,lapInfo:null,lapStartTime:null,wallHits:0,carHits:0};
+
+            // Store server-filtered position
+            tagData[tid].x     = msg.x;
+            tagData[tid].y     = msg.y;
+            tagData[tid].speed = msg.is_static ? 0 : (msg.speed ?? tagData[tid].speed);
+            if (msg.heading   != null) tagData[tid].heading  = msg.heading;
+            if (msg.is_static != null) tagData[tid].isStatic = msg.is_static;
+            tagData[tid].lastTime=Date.now();
+            if (msg.wall_hits!=null)     { tagData[tid].wallHits=msg.wall_hits;    refreshCollisionStats(); }
+            if (msg.car_collisions!=null) { tagData[tid].carHits=msg.car_collisions; refreshCollisionStats(); }
+            if (msg.lap_info!=null) {
+              const pr=tagData[tid].lapInfo?.is_racing;
+              const prevCpSet=tagData[tid].lapInfo?._cpSet;
+              const prevCpHit=tagData[tid].lapInfo?.checkpoints_hit??0;
+              tagData[tid].lapInfo=msg.lap_info;
+              if (prevCpSet) tagData[tid].lapInfo._cpSet=prevCpSet;
+              tagData[tid].lapInfo.checkpoints_hit=prevCpHit;
+              if (pr!==msg.lap_info?.is_racing) setTimeout(renderPlayers,10);
+            }
+            tagData[tid].trail.push({x:msg.x,y:msg.y});
+            if (tagData[tid].trail.length>40) tagData[tid].trail.shift();
+            packetsThisSec++; totalPackets++;
+            if (totalPackets%20===0) { dbg('d_pos',`Tag${tid} (${msg.x.toFixed(1)},${msg.y.toFixed(1)})cm`,'ok'); refreshDebugBar(); }
+
+            if (msg.game_events?.length) {
+              appendFeed(msg.game_events.map(ev => {
+                if (ev.type==='lap_done') {
+                  setTimeout(renderLeaderboard,200);
+                  // ── Auto-push leaderboard to live wall after lap completes ──
+                  // Small delay to let record-lap API finish writing to DB first
+                  setTimeout(() => pushScreen('leaderboard'), 800);
+                  // ── Flash the auto-push badge ──
+                  const badge = document.getElementById('lapAutoPushBadge');
+                  if (badge) {
+                    const ts = new Date().toLocaleTimeString('en-GB',{hour12:false});
+                    badge.textContent = `⚡ auto · ${ts}`;
+                    badge.style.display = 'inline-block';
+                    updateWallStatus('leaderboard', true);
+                    setActiveWallBtn('leaderboard');
+                  }
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  if (_p&&_p.tag_id!==null) {
+                    const _t=parseInt(_p.tag_id,10);
+                    if (!isNaN(_t)&&tagData[_t]) {
+                      tagData[_t].lapStartTime=Date.now();
+                      if (tagData[_t].lapInfo) { tagData[_t].lapInfo.checkpoints_hit=0; tagData[_t].lapInfo._cpSet=new Set(); if (tagData[_t].lapInfo.current_lap) tagData[_t].lapInfo.current_lap=ev.lap+1; }
+                      setTimeout(renderPlayers,10);
+                    }
+                    // Clear this car's dots from all checkpoints on lap done
+                    Object.keys(cpActiveLap).forEach(cpIdx => {
+                      cpActiveLap[cpIdx] = (cpActiveLap[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                    // Clear this car's touches from all checkpoints on lap done
+                    Object.keys(cpTouches).forEach(cpIdx => {
+                      cpTouches[cpIdx] = (cpTouches[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                  }
+                  renderCpPanel();
+                  if (ev.elp!=null) { const _pid=_p?parseInt(_p.tag_id,10):null; let lb=liveLeaderboard.find(r=>r.car_id===_pid); if (!lb) { lb={car_id:_pid,best_elp:Infinity,best_raw:Infinity,laps_done:0}; liveLeaderboard.push(lb); } if (ev.elp<lb.best_elp) lb.best_elp=ev.elp; lb.laps_done=(lb.laps_done||0)+1; }
+                  setTimeout(()=>{ renderLeaderboard(); refreshCollisionStats(); },50);
+                  return `LAP  ${_p ? _p.player_name : ev.car_name} #${ev.lap}  ${ev.raw_time?.toFixed(2)}s  ELP:${ev.elp?.toFixed(2)}s`;
+                }
+                if (ev.type==='lap_void') {
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  if (_p&&_p.tag_id!==null) {
+                    const _t=parseInt(_p.tag_id,10);
+                    if (!isNaN(_t)&&tagData[_t]) {
+                      if (tagData[_t].lapInfo) { tagData[_t].lapInfo.checkpoints_hit=0; tagData[_t].lapInfo._cpSet=new Set(); }
+                      setTimeout(renderPlayers,10);
+                    }
+                    // Clear this car's dots from all checkpoints on lap void
+                    Object.keys(cpActiveLap).forEach(cpIdx => {
+                      cpActiveLap[cpIdx] = (cpActiveLap[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                    // Clear this car's touches from all checkpoints on lap void
+                    Object.keys(cpTouches).forEach(cpIdx => {
+                      cpTouches[cpIdx] = (cpTouches[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                  }
+                  renderCpPanel();
+                  return `⚠ VOID  ${_p ? _p.player_name : ev.car_name}`;
+                }
+                if (ev.type==='race_start') {
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  if (_p&&_p.tag_id!==null) {
+                    const _t=parseInt(_p.tag_id,10);
+                    if (!isNaN(_t)) { if (!tagData[_t]) tagData[_t]={x:0,y:0,trail:[],lastTime:0,speed:0,lapInfo:null,lapStartTime:null,wallHits:0,carHits:0}; tagData[_t].lapStartTime=Date.now(); if (!tagData[_t].lapInfo) tagData[_t].lapInfo={}; tagData[_t].lapInfo.is_racing=true; tagData[_t].lapInfo.current_lap=ev.lap||1; tagData[_t].lapInfo.total_laps=currentTotalLaps; tagData[_t].lapInfo.checkpoints_hit=0; tagData[_t].lapInfo._cpSet=new Set(); tagData[_t].lapInfo.checkpoints_total=CHECKPOINTS_REQUIRED; setTimeout(renderPlayers,10); }
+                    // Clear this car's dots from all checkpoints on new race start
+                    Object.keys(cpActiveLap).forEach(cpIdx => {
+                      cpActiveLap[cpIdx] = (cpActiveLap[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                    // Clear this car's touches from all checkpoints on new race start
+                    Object.keys(cpTouches).forEach(cpIdx => {
+                      cpTouches[cpIdx] = (cpTouches[cpIdx]||[]).filter(t => t.car_id !== parseInt(_p.tag_id,10));
+                    });
+                  }
+                  renderCpPanel();
+                  return `START  ${_p ? _p.player_name : ev.car_name}`;
+                }
+                if (ev.type==='checkpoint') {
+                  if (ev.cp_index!=null&&ev.cp_touches) { cpTouches[String(ev.cp_index)]=ev.cp_touches; renderCpPanel(); }
+                  // Update active-lap dot for this car at this checkpoint
+                  if (ev.cp_index!=null && ev.cp_active) {
+                    cpActiveLap[String(ev.cp_index)] = ev.cp_active;
+                  }
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  if (_p&&_p.tag_id!==null) { const _t=parseInt(_p.tag_id,10); if (!isNaN(_t)&&tagData[_t]?.lapInfo) { if (!tagData[_t].lapInfo._cpSet) tagData[_t].lapInfo._cpSet=new Set(); tagData[_t].lapInfo._cpSet.add(ev.cp_index); tagData[_t].lapInfo.checkpoints_hit=tagData[_t].lapInfo._cpSet.size; } }
+                  return `CP${ev.cp_index}  ${_p ? _p.player_name : ev.car_name}`;
+                }
+                if (ev.type==='race_finish') {
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  return `FINISH  ${_p ? _p.player_name : ev.car_name}`;
+                }
+                if (ev.type==='wall') {
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.car_id);
+                  if (_p&&_p.tag_id!==null) {
+                    const _t=parseInt(_p.tag_id,10);
+                    if (!isNaN(_t)&&tagData[_t]) {
+                      tagData[_t].wallHits=(tagData[_t].wallHits||0)+1;
+                      renderPlayers();
+                      refreshCollisionStats();
+                    }
+                  }
+                  return `🚧 WALL  ${_p ? _p.player_name : ev.car_name}`;
+                }
+                if (ev.type==='car') {
+                  const _p=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.attacker);
+                  const _v=players.find(p=>p.tag_id!==null && parseInt(p.tag_id,10)===ev.victim);
+                  if (_p&&_p.tag_id!==null) {
+                    const _t=parseInt(_p.tag_id,10);
+                    if (!isNaN(_t)&&tagData[_t]) {
+                      tagData[_t].carHits=(tagData[_t].carHits||0)+1;
+                      renderPlayers();
+                      refreshCollisionStats();
+                    }
+                  }
+                  return `💥 HIT  ${_p ? _p.player_name : ev.attacker_name} → ${_v ? _v.player_name : ev.victim_name}`;
+                }
+                return JSON.stringify(ev);
+              }));
+            }
+            updatePositionLabels(); return;
+          }
+          if (msg.type==='admin_event') {
+            if (msg.event==='race_reset') {
+              cpTouches={}; cpActiveLap={}; renderCpPanel(); resetAllEma();
+            }
+            appendFeed([`[${msg.event}] ${msg.message}`]); return;
+          }
+        } catch(err) { console.error('[WS] parse error:',err); }
+      };
+    }
+
+    function parseCsvIntoLiveTrack(csvText) {
+      if (!csvText||!csvText.trim()) return;
+      const center=[],inner=[],outer=[],cpMap={}; let sf=null;
+      for (const rawLine of csvText.split('\n')) {
+        const line=rawLine.trim(); if (!line||line.startsWith('#')) continue;
+        const parts=line.split(',').map(s=>s.trim()), kind=parts[0].toUpperCase();
+        try {
+          if (kind==='CENTER'&&parts.length>=3) center.push([parseFloat(parts[1])*100,parseFloat(parts[2])*100]);
+          else if (kind==='INNER'&&parts.length>=3) inner.push([parseFloat(parts[1])*100,parseFloat(parts[2])*100]);
+          else if (kind==='OUTER'&&parts.length>=3) outer.push([parseFloat(parts[1])*100,parseFloat(parts[2])*100]);
+          else if (kind==='START_FINISH'&&parts.length>=5) { const x1=parseFloat(parts[1])*100,y1=parseFloat(parts[2])*100,x2=parseFloat(parts[3])*100,y2=parseFloat(parts[4])*100; sf={x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2),dir:parts.length>=6?parts[5].toLowerCase():'left_to_right'}; }
+          else if (kind==='CHECKPOINT'&&parts.length>=5) { const id=parseInt(parts[1]); cpMap[id]={id,x:parseFloat(parts[2])*100,y:parseFloat(parts[3])*100,r:parseFloat(parts[4])*100}; }
+        } catch(e){}
+      }
+      if (center.length>2) liveTrack.center=center; if (inner.length>2) liveTrack.inner=inner; if (outer.length>2) liveTrack.outer=outer;
+      if (sf) liveTrack.start_finish=sf;
+      const ids=Object.keys(cpMap).map(Number).sort((a,b)=>a-b); if (ids.length) liveTrack.checkpoints=ids.map(i=>cpMap[i]);
+      refreshDebugBar();
+      calcLayout();
+    }
+
+    function applyLiveTrack(td) {
+      if (!td) return;
+      function n(arr) { if (!arr||!arr.length) return []; return arr.map(p=>Array.isArray(p)?p:[p.x,p.y]); }
+      let ctr=n(td.center),inn=n(td.inner),out=n(td.outer);
+      if (ctr.length>2) liveTrack.center=ctr; if (inn.length>2) liveTrack.inner=inn; if (out.length>2) liveTrack.outer=out;
+      if (td.checkpoints&&td.checkpoints.length) {
+        liveTrack.checkpoints = td.checkpoints.map(cp => ({
+          id: cp.id,
+          x: cp.x,
+          y: cp.y,
+          r: cp.r
+        }));
+      }
+      if (td.start_finish) {
+        liveTrack.start_finish = {
+          x: td.start_finish.x,
+          y1: td.start_finish.y1,
+          y2: td.start_finish.y2,
+          dir: td.start_finish.dir
+        };
+      }
+      refreshDebugBar();
+      calcLayout();
+    }
+
+    function setPill(ok) { const el=document.getElementById('wsPill'); el.className='ws-pill '+(ok?'ws-ok':'ws-fail'); el.textContent=ok?'● Connected':'● Disconnected'; }
+    connectWS();
+
+    setInterval(() => {
+      document.getElementById('sPkt').textContent=packetsThisSec; packetsThisSec=0;
+      const now=Date.now();
+      document.getElementById('sActive').textContent=players.filter(p=>{if(p.tag_id===null)return false;const d=tagData[parseInt(p.tag_id,10)];return d&&(now-d.lastTime)<4000;}).length;
+      refreshDebugBar();
+    }, 1000);
+
+    setInterval(() => {
+      const now=Date.now();
+      players.forEach(p => {
+        const tid=parseInt(p.tag_id,10); if(isNaN(tid)) return; const d=tagData[tid]; if (!d) return;
+        const te=document.querySelector(`.lap-timer[data-tag="${tid}"]`);
+        if (te&&d.lapStartTime&&d.lapInfo?.is_racing) { const el=Math.max(0,(now-d.lapStartTime)/1000),m=Math.floor(el/60),s=(el%60).toFixed(2).padStart(5,'0'); te.textContent=m>0?`${m}:${s}`:s; }
+        const be=document.getElementById(`best-${tid}`);
+        if (be) { const lb=liveLeaderboard.find(r=>r.car_id===tid),bestElp=(lb&&lb.best_elp<1e9)?lb.best_elp:null; if (bestElp!=null) { be.textContent=fmtLapTime(bestElp); be.className='pcard-timing-value best'; } }
+      });
+    }, 100);
+
+    // ═══════════════════════════════════════════════════════════
+    // FEED
+    // ═══════════════════════════════════════════════════════════
+    function appendFeed(lines) { const w=document.getElementById('feed'); lines.forEach(l=>{ const d=document.createElement('div'); d.className='feed-item hi'; d.textContent=l; w.prepend(d); setTimeout(()=>d.classList.remove('hi'),3000); }); while(w.children.length>40) w.removeChild(w.lastChild); }
+
+    // ═══════════════════════════════════════════════════════════
+    // API HELPERS
+    // ═══════════════════════════════════════════════════════════
+    async function apiFetch(url) { try { const r=await fetch(url,{credentials:'include'}); return r.json(); } catch(e) { console.error(e); return {data:[]}; } }
+    function getCSRF() { const m=document.cookie.match(/csrftoken=([^;]+)/); return m?m[1]:''; }
+    async function apiPatch(url,body) { const r=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRF()},credentials:'include',body:JSON.stringify(body)}); return r.json(); }
+    function sendWS(payload) { if (ws&&ws.readyState===WebSocket.OPEN) { ws.send(JSON.stringify(payload)); console.log('[WS→]',payload.type); } else console.warn('[WS] not connected:',payload.type); }
+    function sendWallCmd(screen, extraData={}) { sendWS({type:'live_wall_command',screen,...extraData}); }
+
+    // ═══════════════════════════════════════════════════════════
+    // LIVE WALL
+    // ═══════════════════════════════════════════════════════════
+    let _tournamentIdCache={};
+    function getCurrentTournamentSlug() { return document.getElementById('tSel')?.value||null; }
+    async function getTournamentId(slug) {
+      if (_tournamentIdCache[slug]) return _tournamentIdCache[slug];
+      try { const r=await fetch(API.list); const {data}=await r.json(); (data||[]).forEach(t=>{_tournamentIdCache[t.slug]=t.id;}); return _tournamentIdCache[slug]||null; } catch(e){return null;}
+    }
+
+    {% comment %} async function pushScreen(screenType) {
+      const slug=getCurrentTournamentSlug();
+      if (!slug) { showWallToast('⚠ Select a tournament first','warn'); return; }
+      const tournamentId=await getTournamentId(slug);
+      if (!tournamentId) { showWallToast('⚠ Could not resolve tournament ID','warn'); return; }
+      const btn=document.getElementById('wbtn-'+screenType);
+      if (btn) { btn.classList.add('sending'); btn.disabled=true; }
+      try {
+        const dataResp=await fetch(BACKEND_BASE+'/api/push-live-screen/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRF()},body:JSON.stringify({tournament_id:tournamentId,display_screen:screenType})});
+        if (!dataResp.ok) { showWallToast(`✗ Backend error ${dataResp.status}`,'err'); updateWallStatus(screenType,false); return; }
+        const dataResult=await dataResp.json();
+        if (!dataResult.success||!dataResult.screen_data) { showWallToast('✗ Backend returned no screen_data','err'); updateWallStatus(screenType,false); return; }
+        sendWS({type:'broadcast_message',data:dataResult.screen_data});
+        setActiveWallBtn(screenType); showWallToast(`✓ Live wall → ${screenType.toUpperCase()}`,'ok'); updateWallStatus(screenType,true);
+      } catch(e) { showWallToast('✗ Error: '+e.message,'err'); updateWallStatus(screenType,false); }
+      finally { if (btn) { btn.classList.remove('sending'); btn.disabled=false; } }
+    } {% endcomment %}
+
+  async function pushScreen(screenType) {
+      const slug = getCurrentTournamentSlug();
+      if (!slug) { showWallToast('⚠ Select a tournament first', 'warn'); return; }
+
+      const tournamentId = await getTournamentId(slug);
+      if (!tournamentId) { showWallToast('⚠ Could not resolve tournament ID', 'warn'); return; }
+
+      const selectedGroupId = document.getElementById('gSel').value || null;
+
+      const btn = document.getElementById('wbtn-' + screenType);
+      if (btn) { btn.classList.add('sending'); btn.disabled = true; }
+
+      try {
+        // ── Step 1: Build screen_data from hosted backend ──────────────────
+        const dataResp = await fetch(BACKEND_BASE + '/api/push-live-screen/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRF()
+          },
+          body: JSON.stringify({
+            tournament_id: tournamentId,
+            display_screen: screenType,
+            group_id: selectedGroupId
+          })
+        });
+
+        if (!dataResp.ok) {
+          showWallToast(`✗ Backend error ${dataResp.status}`, 'err');
+          updateWallStatus(screenType, false);
+          return;
+        }
+
+        const dataResult = await dataResp.json();
+
+        if (!dataResult.success || !dataResult.screen_data) {
+          showWallToast('✗ Backend returned no screen_data', 'err');
+          updateWallStatus(screenType, false);
+          return;
+        }
+
+        // ── Step 2: Forward screen_data to local broadcast server ──────────
+        const broadcastResp = await fetch('http://localhost:8000/broadcast-screen/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataResult.screen_data)
+        });
+
+        if (!broadcastResp.ok) {
+          showWallToast(`✗ Local server error ${broadcastResp.status}`, 'err');
+          updateWallStatus(screenType, false);
+          return;
+        }
+
+        const broadcastResult = await broadcastResp.json();
+
+        if (!broadcastResult.success) {
+          showWallToast('✗ Broadcast failed', 'err');
+          updateWallStatus(screenType, false);
+          return;
+        }
+
+        // ── Step 3: Success ────────────────────────────────────────────────
+        setActiveWallBtn(screenType);
+        showWallToast(`✓ Live wall → ${screenType.toUpperCase()}`, 'ok');
+        updateWallStatus(screenType, true);
+
+      } catch (e) {
+        // Differentiate between backend unreachable vs local server unreachable
+        const msg = e.message.includes('localhost')
+          ? '✗ Local server unreachable'
+          : '✗ Error: ' + e.message;
+        showWallToast(msg, 'err');
+        updateWallStatus(screenType, false);
+
+      } finally {
+        if (btn) { btn.classList.remove('sending'); btn.disabled = false; }
+      }
+    }
+
+    function setActiveWallBtn(t) { document.querySelectorAll('.btn-wall').forEach(b=>b.classList.remove('active')); const btn=document.getElementById('wbtn-'+t); if (btn) btn.classList.add('active'); }
+    function updateWallStatus(t,ok) { const el=document.getElementById('wallStatus'); if (!el) return; const ts=new Date().toLocaleTimeString('en-GB',{hour12:false}); const dot=ok?'<span class="ws-ok-dot">●</span>':'<span class="ws-err-dot">✗</span>'; el.innerHTML=`${dot} ${t} · ${ts}`; }
+    function showWallToast(msg,type) { const toast=document.getElementById('wallToast'); if (!toast) return; const colors={ok:'#00ff88',err:'#ff3b5c',warn:'#ffd700'}; toast.style.borderColor=colors[type]||'#1e2a3a'; toast.style.color=colors[type]||'#e2eaf4'; toast.textContent=msg; toast.style.display='block'; toast.style.opacity='1'; clearTimeout(toast._timer); toast._timer=setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>{toast.style.display='none';},300);},2800); }
+
+    // ═══════════════════════════════════════════════════════════
+    // TOURNAMENT / GROUP
+    // ═══════════════════════════════════════════════════════════
+    async function loadTournaments() { const {data}=await apiFetch(API.list); const sel=document.getElementById('tSel'); (data||[]).forEach(t=>{const o=document.createElement('option');o.value=t.slug;o.textContent=t.name;sel.appendChild(o);}); }
+
+    async function loadGroups() {
+      const slug=document.getElementById('tSel').value, gSel=document.getElementById('gSel');
+      gSel.innerHTML='<option value="">— Group —</option>'; gSel.disabled=true;
+      currentGroupId=null; currentGroupStatus=''; currentTrackCSV=''; currentTournamentId=null; players=[]; reassignMode=false;
+      cpTouches={}; renderCpPanel();
+      setBadge(''); updateButtons(); renderPlayers();
+      dbg('d_track','none','warn'); dbg('d_wall','—s','warn'); dbg('d_atk','—s','warn'); dbg('d_vic','—s','warn');
+      if (!slug) return;
+      currentTournamentId = await getTournamentId(slug);
+      const {data}=await apiFetch(API.struct+'?slug='+slug); if (!data?.rounds) return;
+      currentTotalLaps=data.total_laps||10;
+      raceConfig={total_laps:data.total_laps||10,object_collision_time:data.object_collision_time??0,collision_creating_time:data.collision_creating_time??0,collision_absorbing_time:data.collision_absorbing_time??0};
+      dbg('d_wall',`${parseFloat(raceConfig.object_collision_time||0).toFixed(1)}s`,'hi');
+      dbg('d_atk',`${parseFloat(raceConfig.collision_creating_time||0).toFixed(1)}s`,'hi');
+      dbg('d_vic',`${parseFloat(raceConfig.collision_absorbing_time||0).toFixed(1)}s`,'hi');
+      if (data.track_csv&&data.track_csv.trim().length>0) { currentTrackCSV=data.track_csv; const cl=currentTrackCSV.split('\n').filter(l=>l.trim()&&!l.startsWith('#')); const cpN=cl.filter(l=>l.trim().toUpperCase().startsWith('CHECKPOINT')).length; const cN=cl.filter(l=>l.trim().toUpperCase().startsWith('CENTER')).length; dbg('d_track',`${cN}pts/${cpN}CPs(need ${CHECKPOINTS_REQUIRED})`,'ok'); parseCsvIntoLiveTrack(currentTrackCSV); }
+      else if (data.track_points&&data.track_points.length>2) { currentTrackCSV=data.track_points.map(pt=>`CENTER,${pt[0]},${pt[1]}`).join('\n'); dbg('d_track',`${data.track_points.length}pts(fallback)`,'warn'); parseCsvIntoLiveTrack(currentTrackCSV); }
+      else { currentTrackCSV=''; dbg('d_track','none','warn'); }
+      gSel.disabled=false;
+      data.rounds.forEach(r=>{const og=document.createElement('optgroup');og.label=`Round ${r.round_no} — ${r.round_name}${r.is_final?' 🏆':''}`;r.groups.forEach(g=>{const o=document.createElement('option');o.value=g.group_id;o.dataset.status=g.group_status||'';o.dataset.is_final=r.is_final?'true':'false';o.textContent=g.group_name+(g.group_status?` [${g.group_status}]`:'');og.appendChild(o);});gSel.appendChild(og);});
+    }
+
+    async function selectGroup() {
+      const gSel=document.getElementById('gSel'); currentGroupId=gSel.value||null; reassignMode=false;
+      if (!currentGroupId) { players=[]; currentGroupStatus=''; setBadge(''); updateButtons(); renderPlayers(); return; }
+      const opt=gSel.options[gSel.selectedIndex]; currentGroupStatus=opt.dataset.status||'';
+      setBadge(currentGroupStatus); updateButtons();
+      updateFinaleButton();
+      const {data}=await apiFetch(API.players+'?group_id='+currentGroupId);
+      players=(data||[]).map(p=>({...p,tag_id:(p.tag_id!==null&&p.tag_id!==undefined&&p.tag_id!=='')?parseInt(p.tag_id,10):null}));
+      refreshDebugBar(); renderPlayers();
+    }
+
+
+
+    function updateFinaleButton() {
+      const gSel = document.getElementById('gSel');
+      const finaleGroup = document.getElementById('finaleGroup');
+      if (!currentGroupId || !gSel.options[gSel.selectedIndex]) {
+        finaleGroup.style.display = 'none';
+        return;
+      }
+      const opt = gSel.options[gSel.selectedIndex];
+      const isFinal = opt.dataset.is_final === 'true';
+      finaleGroup.style.display = isFinal ? '' : 'none';
+    }
+
+    async function pushFinale() {
+      const gSel = document.getElementById('gSel');
+      const opt = gSel.options[gSel.selectedIndex];
+      const isFinal = opt?.dataset.is_final === 'true';
+      if (!isFinal) return;
+      const screenType = (currentGroupStatus === 'finished') ? 'finale_after' : 'finale_before';
+      await pushScreen(screenType);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RACE ACTIONS
+    // ═══════════════════════════════════════════════════════════
+    function buildTagMap() { const map={}; players.forEach(p=>{if(p.tag_id!==null&&p.tag_id!==undefined) map[String(p.tag_id)]=p.gp_id;}); return map; }
+
+    async function doLive() {
+      if (!currentGroupId) return;
+      const res=await apiPatch(API.markLive,{group_id:currentGroupId}); if (!res.success) { alert('Failed to mark group live'); return; }
+      currentGroupStatus='live'; reassignMode=false; setBadge('live'); updateButtons();
+      const opt=document.getElementById('gSel').options[document.getElementById('gSel').selectedIndex];
+      opt.dataset.status='live'; opt.textContent=opt.textContent.replace(/\s*\[.*?\]\s*$/,'')+' [live]';
+      cpTouches={}; cpActiveLap={}; renderCpPanel(); resetAllEma();
+      await pushScreen('counter');
+      sendWS({type:'admin_start',group_id:parseInt(currentGroupId),tournament_id:currentTournamentId,total_laps:currentTotalLaps,tag_map:buildTagMap(),race_config:raceConfig,track_csv:currentTrackCSV,checkpoints_required:CHECKPOINTS_REQUIRED});
+      appendFeed([`▶ Group ${currentGroupId} LIVE – ${currentTotalLaps} laps, ${CHECKPOINTS_REQUIRED} CPs/lap`]);
+      renderPlayers();
+     
+    }
+
+    async function doFinish() {
+      if (!currentGroupId) return; if (!confirm('Mark race as finished?')) return;
+      const res=await apiPatch(API.markFinish,{group_id:currentGroupId}); if (!res.success) { alert('Failed'); return; }
+      currentGroupStatus='finished'; setBadge('finished');
+      const opt=document.getElementById('gSel').options[document.getElementById('gSel').selectedIndex];
+      opt.dataset.status='finished'; opt.textContent=opt.textContent.replace(/\s*\[.*?\]\s*$/,'')+' [finished]';
+      sendWS({type:'reset'}); appendFeed(['⏹ Race finished']);
+      Object.keys(tagData).forEach(tid=>{tagData[tid].trail=[];tagData[tid].lapInfo=null;tagData[tid].lapStartTime=null;});
+      liveLeaderboard=[]; cpTouches={}; renderLeaderboard(); renderCpPanel(); refreshCollisionStats(); resetAllEma(); reassignMode=true; updateButtons(); renderPlayers();
+    }
+
+    function doRestart() {
+      if (!currentGroupId) return;
+      openTagModal();
+      
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TAG ASSIGNMENT MODAL
+    // ═══════════════════════════════════════════════════════════
+    function openTagModal() {
+      const body = document.getElementById('tagModalBody');
+      if (!players.length) { alert('No players loaded.'); return; }
+      body.innerHTML = players.map((p, idx) => {
+        const color = COLORS[idx % COLORS.length];
+        const tid = (p.tag_id !== null && p.tag_id !== undefined) ? p.tag_id : '';
+        return `<div class="tag-assign-row">
+          <div class="tag-assign-dot" style="background:${color};box-shadow:0 0 6px ${color}"></div>
+          <div>
+            <div class="tag-assign-name" style="color:${color}">${p.player_name}</div>
+            <div class="tag-assign-status">${p.player_status || 'Player'}</div>
+          </div>
+          <input
+            class="tag-assign-inp ${tid !== '' ? 'has-val' : ''}"
+            type="number"
+            min="0"
+            max="9"
+            placeholder="Tag #"
+            value="${tid}"
+            data-gp="${p.gp_id}"
+            data-idx="${idx}"
+            oninput="onTagModalInput(this)"
+          />
+        </div>`;
+      }).join('');
+      document.getElementById('tagModal').classList.add('open');
+    }
+
+    function closeTagModal() {
+      document.getElementById('tagModal').classList.remove('open');
+    }
+
+    function onTagModalInput(input) {
+      const v = input.value.trim();
+      input.classList.toggle('has-val', v !== '');
+    }
+
+    async function confirmTagsAndRestart() {
+      if (!confirm('Save tag assignments and restart race?')) return;
+
+      // Save all tag inputs
+      const inputs = document.querySelectorAll('.tag-assign-inp');
+      const savePromises = [];
+      inputs.forEach(inp => {
+        const gpId = inp.dataset.gp;
+        const rawId = inp.value.trim();
+        const player = players.find(p => String(p.gp_id) === String(gpId));
+        if (player) {
+          player.tag_id = rawId ? parseInt(rawId, 10) : null;
+        }
+        savePromises.push(apiPatch(API.updateTag, { gp_id: gpId, tag_id: rawId || null }));
+      });
+
+      try {
+        await Promise.all(savePromises);
+      } catch(e) {
+        console.warn('[TagModal] Some saves failed:', e);
+      }
+
+      closeTagModal();
+      
+      // Delete all lap records for this group before restarting
+      try {
+        await fetch(API.resetGroup, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRF() },
+          credentials: 'include',
+          body: JSON.stringify({ group_id: currentGroupId }),
+        });
+      } catch(e) {
+        console.warn('[ResetGroup] Failed to delete lap records:', e);
+      }
+
+      // Reset engines, THEN re-arm with the track CSV + new tag map.
+      // (A bare 'reset' alone never loads track_csv on the bridge side,
+      // so START_LINE_X/CHECKPOINTS would stay stuck on hardcoded defaults.)
+      sendWS({ type: 'reset' });
+      cpTouches = {}; renderCpPanel(); resetAllEma();
+      await pushScreen('counter');
+      sendWS({type:'admin_start',group_id:parseInt(currentGroupId),tournament_id:currentTournamentId,total_laps:currentTotalLaps,tag_map:buildTagMap(),race_config:raceConfig,track_csv:currentTrackCSV,checkpoints_required:CHECKPOINTS_REQUIRED});
+      Object.keys(tagData).forEach(tid => { tagData[tid].trail = []; tagData[tid].lapInfo = null; tagData[tid].lapStartTime = null; });
+      currentGroupStatus = 'live'; reassignMode = false; setBadge('live');
+      appendFeed(['▶ Race restarted — tags reassigned, track reloaded, LIVE']);
+      renderPlayers();
+      updateButtons();
+      refreshDebugBar();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // UI
+    // ═══════════════════════════════════════════════════════════
+    function setBadge(s) { const el=document.getElementById('gBadge'),map={live:['b-live','LIVE'],finished:['b-finished','FINISHED']};const [cls,lbl]=map[s]||['b-default',s?s.toUpperCase():''];el.className='badge '+(reassignMode?'b-reassign':cls);el.textContent=reassignMode?'REASSIGN TAGS':lbl; }
+    function updateButtons() {
+      const bL=document.getElementById('btnLive'),bF=document.getElementById('btnFinish'),bR=document.getElementById('btnRestart');
+      const has=!!currentGroupId,live=currentGroupStatus==='live',done=currentGroupStatus==='finished';
+      if (reassignMode) { bL.textContent='▶ Restart Race'; bL.disabled=false; bF.disabled=true; bR.disabled=true; }
+      else if (done) { bL.textContent='▶ Live'; bL.disabled=true; bF.disabled=true; bR.disabled=!has; }
+      else { bL.textContent='▶ Live'; bL.disabled=!has||live; bF.disabled=!live; bR.disabled=!live; }
+    }
+    function canEditTags() { return reassignMode||(currentGroupStatus!=='live'&&currentGroupStatus!=='finished'); }
+
+    function renderPlayers() {
+      const wrap=document.getElementById('players');
+      if (!players.length) { wrap.innerHTML='<p class="ph">No players in this group</p>'; return; }
+      const editable=canEditTags(), now=Date.now();
+      const banner=reassignMode?`<div style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:.78rem;color:var(--yellow);font-weight:600;">↺ Reassign tags, then click <strong>▶ Restart Race</strong></div>`:'';
+      wrap.innerHTML=banner+renderCards(editable,now);
+    }
+
+    function renderCards(editable, now) {
+      return players.map((p,idx)=>{
+        const color=COLORS[idx%COLORS.length],tid=parseInt(p.tag_id,10),d=!isNaN(tid)?tagData[tid]:null;
+        const fresh=d&&(now-d.lastTime)<4000,racing=currentGroupStatus==='live'&&!reassignMode&&fresh;
+        let posLine='';
+        if (racing&&d) posLine=`<div class="pcard-pos" id="ppos-${tid}">x:${d.x.toFixed(1)} y:${d.y.toFixed(1)} cm · ${(d.speed||0).toFixed(1)} km/h</div>`;
+        else if (currentGroupStatus==='live'&&!reassignMode&&!isNaN(tid)) posLine=`<div class="pcard-sub" style="color:#fbbf24">Waiting for signal…</div>`;
+        let lapLine='';
+        if (d?.lapInfo?.is_racing) {
+          const li=d.lapInfo,cpHit=li.checkpoints_hit||0,cpTotal=li.checkpoints_total||CHECKPOINTS_REQUIRED;
+          const lb=liveLeaderboard.find(r=>r.car_id===tid),bestElp=(lb&&lb.best_elp<1e9)?lb.best_elp:null;
+          const wH=d.wallHits||0,cH=d.carHits||0,penTot=lb?.penalty_total??0,bonTot=lb?.bonus_total??0;
+          let colRow='';
+          if (wH>0||cH>0||penTot>0||bonTot>0) { colRow='<div class="pcard-col-row">'; if(wH>0)colRow+=`<span class="col-chip cc-wall">🚧 ${wH}×wall</span>`; if(cH>0)colRow+=`<span class="col-chip cc-car">💥 ${cH}×hit</span>`; if(penTot>0)colRow+=`<span class="col-chip cc-pen">+${penTot.toFixed(1)}s</span>`; if(bonTot>0)colRow+=`<span class="col-chip cc-bon">-${bonTot.toFixed(1)}s</span>`; colRow+='</div>'; }
+          const cpPips=Array.from({length:cpTotal},(_,i)=>{const done=i<cpHit,next=i===cpHit,col=done?'#00ff88':(next?'#ffd700':'rgba(255,255,255,0.12)'),brd=done?'#00ff88':(next?'#ffd700':'rgba(255,255,255,0.2)');return `<span title="CP${i}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${col};border:1.5px solid ${brd};transition:background .3s;"></span>`;}).join('');
+          const cpColor=cpHit>=cpTotal?'#00ff88':(cpHit>0?'#ffd700':'rgba(255,255,255,0.35)');
+          const cpTagLabel=`Tag ${!isNaN(tid)?tid:'?'} — ${cpHit}/${cpTotal} checkpoint${cpTotal!==1?'s':''}`;
+          lapLine=`<div class="pcard-timing"><div class="pcard-timing-row"><span class="pcard-timing-label">LAP ${li.current_lap} / ${li.total_laps}</span><span class="pcard-timing-label" style="color:rgba(255,255,255,.2)">CURRENT</span></div><div class="pcard-timing-row"><span class="pcard-timing-value running lap-timer" data-tag="${tid}">0.00</span></div><div class="pcard-timing-row" style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.06)"><span class="pcard-timing-label">BEST LAP</span>${bestElp!=null?`<span class="pcard-timing-value best" id="best-${tid}">${fmtLapTime(bestElp)}</span>`:`<span class="pcard-timing-value no-data" id="best-${tid}">—</span>`}</div><div class="pcard-cp-row"><span style="font-size:.55rem;letter-spacing:1px;color:rgba(255,255,255,.3);margin-right:4px;">CP</span>${cpPips}<span style="font-size:.58rem;color:${cpHit>=cpTotal?'#00ff88':'rgba(255,255,255,.3)'};margin-left:4px;font-weight:700;">${cpHit}/${cpTotal}</span></div><div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06);font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;color:${cpColor};letter-spacing:.3px;">${cpTagLabel}${cpHit>=cpTotal?' ✓':''}</div>${colRow}</div>`;
+        } else if (d?.lapInfo?.race_finished) {
+          const lb=liveLeaderboard.find(r=>r.car_id===tid),bestElp=(lb&&lb.best_elp<1e9)?lb.best_elp:null;
+          const wH=d.wallHits||0,cH=d.carHits||0;
+          lapLine=`<div class="pcard-timing"><div class="pcard-timing-row"><span class="pcard-timing-label">FINISHED</span><span style="font-size:.8rem">🏆</span></div>${bestElp!=null?`<div class="pcard-timing-row"><span class="pcard-timing-label">BEST LAP</span><span class="pcard-timing-value best">${fmtLapTime(bestElp)}</span></div>`:''} ${wH>0||cH>0?`<div class="pcard-col-row">${wH>0?`<span class="col-chip cc-wall">🚧 ${wH}×wall</span>`:''}${cH>0?`<span class="col-chip cc-car">💥 ${cH}×hit</span>`:''}</div>`:''}</div>`;
+        } else if (d?.lapInfo&&!d.lapInfo.is_racing&&d.lapStartTime) {
+          const lb=liveLeaderboard.find(r=>r.car_id===tid),bestElp=(lb&&lb.best_elp<1e9)?lb.best_elp:null;
+          if (bestElp!=null) lapLine=`<div class="pcard-timing"><div class="pcard-timing-row"><span class="pcard-timing-label">BEST LAP</span><span class="pcard-timing-value best">${fmtLapTime(bestElp)}</span></div></div>`;
+        }
+        const tagInput=editable?`<div class="tag-row"><input class="tag-inp" type="text" value="${!isNaN(tid)?tid:''}" placeholder="Tag ID (number)" data-gp="${p.gp_id}" onblur="saveTag(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTag(this)}"/><div class="tag-hint" id="hint-${p.gp_id}"></div></div>`:'';
+        return `<div class="pcard ${racing?'active pulse':''}" style="--cc:${color}"><div class="pcard-hdr"><div class="pcard-dot"></div><div class="pcard-name">${p.player_name}</div>${!isNaN(tid)?`<span class="pcard-tag">#${tid}</span>`:''}<button class="btn btn-raw" style="padding:2px 6px;font-size:0.6rem;margin-left:auto;" onclick="sendWallCmd('player_laps', {gp_id: '${p.gp_id}', tag_id: '${p.tag_id}', player_name: '${p.player_name.replace(/'/g,"\\'")}'}); event.stopPropagation();">Wall Laps</button></div><div class="pcard-sub">${p.player_status||''}</div>${posLine}${lapLine}${tagInput}</div>`;
+      }).join('');
+    }
+
+    function updatePositionLabels() {
+      if (currentGroupStatus!=='live'||reassignMode) return;
+      const now=Date.now();
+      players.forEach(p=>{const tid=parseInt(p.tag_id,10);if(isNaN(tid))return;const d=tagData[tid];if(!d)return;const el=document.getElementById('ppos-'+tid);if(el&&(now-d.lastTime)<4000)el.textContent=`x:${d.x.toFixed(1)} y:${d.y.toFixed(1)} cm · ${(d.speed||0).toFixed(1)} km/h`;else if(!el&&(now-d.lastTime)<4000)renderPlayers();});
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SAVE TAG
+    // ═══════════════════════════════════════════════════════════
+    async function saveTag(input) {
+      if (!canEditTags()) return; const gpId=input.dataset.gp,rawId=input.value.trim(),hint=document.getElementById('hint-'+gpId); if (!hint) return;
+      hint.textContent='…'; hint.className='tag-hint saving';
+      const res=await apiPatch(API.updateTag,{gp_id:gpId,tag_id:rawId||null});
+      if (res.success) { hint.textContent='✓ Saved'; hint.className='tag-hint ok'; setTimeout(()=>{hint.textContent='';hint.className='tag-hint';},2000); const player=players.find(p=>p.gp_id==gpId); if (player) { player.tag_id=rawId?parseInt(rawId,10):null; refreshDebugBar(); } }
+      else { hint.textContent='✗ Error'; hint.className='tag-hint err'; setTimeout(()=>{hint.textContent='';hint.className='tag-hint';},2500); }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LEADERBOARD
+    // ═══════════════════════════════════════════════════════════
+    function fmtLapTime(secs) { if (secs==null||secs===Infinity||secs>9000) return '—'; const m=Math.floor(secs/60); return m>0?`${m}:${(secs%60).toFixed(3).padStart(6,'0')}`:(secs%60).toFixed(3).padStart(6,'0'); }
+    function renderLeaderboard() {
+      const wrap=document.getElementById('lbRows'); if (!wrap) return;
+      if (!liveLeaderboard.length&&!players.length) { wrap.innerHTML='<div style="color:var(--muted);font-size:.75rem;text-align:center;padding:8px 0;">No lap data yet</div>'; return; }
+      const MC=['#ffd700','#c0c0c0','#cd7f32'],ML=['P1','P2','P3'];
+      const ranked=[];
+      liveLeaderboard.forEach(lb=>{const player=players.find(p=>p.tag_id!==null&&parseInt(p.tag_id,10)===lb.car_id);ranked.push({lb,player});});
+      players.forEach(p=>{if(!ranked.find(r=>r.player===p))ranked.push({lb:null,player:p});});
+      wrap.innerHTML=ranked.map(({lb,player},ri)=>{
+        if (!player) return '';const idx=players.indexOf(player),color=COLORS[idx%COLORS.length];
+        const isTop3=ri<3&&lb,mColor=isTop3?MC[ri]:'rgba(255,255,255,0.3)',mLabel=lb?(ri<3?ML[ri]:`P${ri+1}`):'—';
+        const done=lb&&lb.laps_done>=currentTotalLaps;
+        return `<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);"><div style="width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.4);border:2px solid ${mColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:.65rem;font-weight:700;color:${mColor};font-family:'JetBrains Mono',monospace;">${mLabel}</span></div><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.85rem;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.player_name}${done?'<span style="font-size:.6rem;background:rgba(0,255,136,.15);color:#00ff88;border:1px solid rgba(0,255,136,.3);border-radius:3px;padding:1px 5px;margin-left:4px;">DONE</span>':''}</div><div style="font-size:.65rem;color:var(--muted);margin-top:1px;">${lb?`${lb.laps_done}/${currentTotalLaps} laps`:'not started'}${lb?.penalty_total>0?` · +${lb.penalty_total.toFixed(1)}s pen`:''}</div></div><div style="text-align:right;flex-shrink:0;"><div style="font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:700;color:${isTop3?mColor:'#fff'};">${fmtLapTime(lb?.best_elp)}</div>${lb?.best_raw&&lb.best_elp!==lb.best_raw?`<div style="font-size:.6rem;color:var(--muted);">raw ${fmtLapTime(lb.best_raw)}</div>`:''}</div></div>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RAW MONITOR
+    // ═══════════════════════════════════════════════════════════
+    const RAW_MAX_ROWS=80; let rawPaused=false, rawTagCounters={};
+    function rawMonitorIngest(tid, msg) {
+      const now=Date.now(); if (!rawTagCounters[tid]) rawTagCounters[tid]={count:0,windowStart:now,rate:0,lastTs:now};
+      const tc=rawTagCounters[tid]; tc.count++; tc.lastTs=now;
+      const elapsed=(now-tc.windowStart)/1000; if (elapsed>=1.0) { tc.rate=Math.round(tc.count/elapsed); tc.count=0; tc.windowStart=now; }
+      document.getElementById('rawTotalRate').textContent=Object.values(rawTagCounters).reduce((s,t)=>s+t.rate,0)+' pkt/s';
+      renderTagRatePills(); if (rawPaused) return;
+      const log=document.getElementById('rawLog');
+      const timeStr=new Date().toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})+'.'+String(now%1000).padStart(3,'0');
+      const ranges=Array.isArray(msg.range)?msg.range.map(r=>Number(r).toFixed(0).padStart(4,' ')).join(' '):'—';
+      const qual=msg.quality||'?',qc=qual==='excellent'?'excellent':qual==='good'?'good':qual==='fair'?'fair':'oob';
+      const color=COLORS[tid%COLORS.length],row=document.createElement('div'); row.className='rlog-row';
+      row.innerHTML=`<span class="rlog-time">${timeStr.slice(0,12)}</span><span class="rlog-tag" style="color:${color}">T${tid}</span><span class="rlog-xy">${msg.x!=null?msg.x.toFixed(1).padStart(6,' '):'   —'},${msg.y!=null?msg.y.toFixed(1).padStart(6,' '):'   —'}cm</span><span class="rlog-ranges">[ ${ranges} ]cm  ${msg.speed!=null?msg.speed.toFixed(1):'—'}km/h</span><span class="rlog-qual ${qc}">${qual}</span>`;
+      const header=log.firstChild; log.insertBefore(row,header?header.nextSibling:null);
+      while (log.children.length>RAW_MAX_ROWS+1) log.removeChild(log.lastChild);
+    }
+    function renderTagRatePills() {
+      const wrap=document.getElementById('rawTagRates'),now=Date.now(),tids=Object.keys(rawTagCounters).map(Number).sort();if(!tids.length)return;
+      const maxRate=Math.max(1,...tids.map(t=>rawTagCounters[t].rate));
+      wrap.innerHTML=tids.map(tid=>{const tc=rawTagCounters[tid],color=COLORS[tid%COLORS.length],stale=(now-tc.lastTs)>3000,pct=stale?0:Math.min(100,Math.round(tc.rate/maxRate*100));return `<div class="rtag-pill"><span class="rtag-id" style="color:${color}">T${tid}</span><span class="rtag-rate">${stale?'silent':tc.rate+'/s'}</span><div class="rtag-bar"><div class="rtag-fill" style="width:${pct}%;background:${color}"></div></div></div>`;}).join('');
+    }
+    function toggleRawMonitor() { rawPaused=!rawPaused; const btn=document.getElementById('rawToggleBtn'); btn.textContent=rawPaused?'RESUME':'PAUSE'; btn.style.color=rawPaused?'#ff3b5c':'#e2eaf4'; }
+    function clearRawLog() { const log=document.getElementById('rawLog'); while(log.children.length>1)log.removeChild(log.lastChild); rawTagCounters={}; document.getElementById('rawTotalRate').textContent='0 pkt/s'; document.getElementById('rawTagRates').innerHTML='<span style="color:#4a5568;font-family:\'JetBrains Mono\',monospace;font-size:.6rem;align-self:center;">waiting for data…</span>'; }
+    setInterval(renderTagRatePills,1000);
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    loadTournaments();
+    console.log('[XRace] ready — 4-layer filter: L1 spike|L2 median|L3 Kalman dt-aware (Python) + L4 frame-rate independent EMA (JS canvas)');
+  </script>
+  <!-- ── Tag Assignment Modal ─────────────────────────────── -->
+  <div id="tagModal">
+    <div id="tagModalBox">
+      <div id="tagModalHeader">
+        <h2>↺ Assign Tags to Players</h2>
+        <p>Enter the UWB tag ID for each player before restarting the race.</p>
+      </div>
+      <div id="tagModalBody">
+        <!-- rows injected by JS -->
+      </div>
+      <div id="tagModalFooter">
+        <button class="btn-modal-cancel" onclick="closeTagModal()">Cancel</button>
+        <button class="btn-modal-confirm" onclick="confirmTagsAndRestart()">▶ Save & Restart Race</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
